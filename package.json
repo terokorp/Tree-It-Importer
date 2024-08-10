@@ -1,0 +1,26 @@
+{
+  "name": "net.koodaa.treeit-importer",
+  "displayName": "Tree It Importer",
+  "description": "Creates prefabs from Tree It files easly",
+  "version": "0.1.0",
+  "unity": "2022.3",
+  "unityRelease": "35f1",
+  "documentationUrl": "https://github.com/KoodaaNet/net.koodaa.treeit-importer/blob/master/Documentation~",
+  "changelogUrl": "https://github.com/KoodaaNet/net.koodaa.treeit-importer/blob/master/CHANGELOG.md",
+  "licensesUrl": "https://github.com/KoodaaNet/net.koodaa.treeit-importer/blob/master/LICENSE.md",
+  "keywords": [
+    "treeit",
+    "tree",
+    "nature",
+    "environment"
+  ],
+  "repository": {
+    "url": "https://github.com/KoodaaNet/net.koodaa.treeit-importer.git",
+    "type": "git"
+  },
+  "author": {
+    "name": "Tero Korpela",
+    "email": "tero.korpela@gmail.com",
+    "url": "https://terokorp.github.io/"
+  }
+}
