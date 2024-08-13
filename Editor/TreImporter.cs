@@ -63,11 +63,13 @@ namespace net.koodaa.TreeItImporter.Editor
             Dictionary<string, Material> materialsCreated = new Dictionary<string, Material>();
             CreateMaterials(settings, originalModel, ref materialsCreated);
 
-
             // Adding material overrides to dictionary
             Dictionary<string, Material> materialsOverride = new();
             foreach (var mat in materialOverrides)
-                materialsOverride.Add(mat.name, mat.material);
+            {
+                if(mat != null && mat.material != null)
+                    materialsOverride.Add(mat.name, mat.material);
+            }
 
             // Creating LOD objects
             List<GameObject> lodObjects = new List<GameObject>();
@@ -99,6 +101,14 @@ namespace net.koodaa.TreeItImporter.Editor
                     if (lodObject != null)
                         lodObjects.Add(lodObject);
                 }
+            }
+
+
+            // Prepopulating material overrides
+            foreach (var materiaName in materialsCreated.Keys)
+            {
+                if (!materialOverrides.Any(o => o.name == materiaName))
+                    materialOverrides.Add(new MaterialOverride() { name = materiaName, material = null });
             }
 
             // Creating MainObject
@@ -245,12 +255,13 @@ namespace net.koodaa.TreeItImporter.Editor
 
         private GameObject CreateSpeedtreeImposter(ImportSettings settings, GameObject originalModel)
         {
+            string filename = settings.Filename + "_LOD5";
             GameObject lod5go = LoadLodObject(settings, 5);
             Texture lod5Texture = lod5go.GetComponents<Renderer>()[0].sharedMaterial.mainTexture;
 
             FindDimensions(originalModel, out float height, out float width, out float bottom);
 
-            Material mat_Lod5 = CreateUrpLitMaterial(settings, settings.Directory, settings.Filename + " - LOD5", settings.Filename + "_LOD5", true);
+            Material mat_Lod5 = CreateUrpLitMaterial(settings, settings.Directory, filename, settings.Filename + "_LOD5", true);
 
             BillboardAsset bb = CreateBillBoard(settings, mat_Lod5, height, width, bottom, imageCount);
             bb.material = mat_Lod5;
