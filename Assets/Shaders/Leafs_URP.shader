@@ -11,6 +11,7 @@ Shader "TreeItImporter/Leafs_URP"
 		[Normal]_BumpMap("Normal Map", 2D) = "bump" {}
 		_Roughness("Roughness", 2D) = "white" {}
 		_Translucency("Translucency", 2D) = "white" {}
+		_AlphaClipThreshold("Alpha Clip Threshold", Range( 0 , 1)) = 0.5
 		_NoiseSize("Noise Size", Range( 0 , 10)) = 1
 		_WindScroll("WindScroll", Float) = 0.3
 		_WindEdges("WindEdges", Range( 0 , 1)) = 0.2
@@ -342,6 +343,7 @@ Shader "TreeItImporter/Leafs_URP"
 			float4 _BumpMap_ST;
 			float4 _Roughness_ST;
 			float4 _Translucency_ST;
+			float _AlphaClipThreshold;
 			float _WindEdges;
 			float _WindVariation;
 			float _WindStrenght;
@@ -653,7 +655,7 @@ Shader "TreeItImporter/Leafs_URP"
 				float Smoothness = ( 1.0 - tex2D( _Roughness, uv_Roughness ).r );
 				float Occlusion = 1;
 				float Alpha = tex2DNode20.a;
-				float AlphaClipThreshold = 0.5;
+				float AlphaClipThreshold = _AlphaClipThreshold;
 				float AlphaClipThresholdShadow = 0.5;
 				float3 BakedGI = 0;
 				float3 RefractionColor = 1;
@@ -1002,6 +1004,7 @@ Shader "TreeItImporter/Leafs_URP"
 			float4 _BumpMap_ST;
 			float4 _Roughness_ST;
 			float4 _Translucency_ST;
+			float _AlphaClipThreshold;
 			float _WindEdges;
 			float _WindVariation;
 			float _WindStrenght;
@@ -1262,7 +1265,7 @@ Shader "TreeItImporter/Leafs_URP"
 				
 
 				float Alpha = tex2DNode20.a;
-				float AlphaClipThreshold = 0.5;
+				float AlphaClipThreshold = _AlphaClipThreshold;
 				float AlphaClipThresholdShadow = 0.5;
 
 				#ifdef ASE_DEPTH_WRITE_ON
@@ -1401,6 +1404,7 @@ Shader "TreeItImporter/Leafs_URP"
 			float4 _BumpMap_ST;
 			float4 _Roughness_ST;
 			float4 _Translucency_ST;
+			float _AlphaClipThreshold;
 			float _WindEdges;
 			float _WindVariation;
 			float _WindStrenght;
@@ -1640,7 +1644,7 @@ Shader "TreeItImporter/Leafs_URP"
 				
 
 				float Alpha = tex2DNode20.a;
-				float AlphaClipThreshold = 0.5;
+				float AlphaClipThreshold = _AlphaClipThreshold;
 
 				#ifdef ASE_DEPTH_WRITE_ON
 					float DepthValue = IN.positionCS.z;
@@ -1754,6 +1758,7 @@ Shader "TreeItImporter/Leafs_URP"
 			float4 _BumpMap_ST;
 			float4 _Roughness_ST;
 			float4 _Translucency_ST;
+			float _AlphaClipThreshold;
 			float _WindEdges;
 			float _WindVariation;
 			float _WindStrenght;
@@ -2006,7 +2011,7 @@ Shader "TreeItImporter/Leafs_URP"
 				float3 BaseColor = ( _Color * tex2DNode20 ).rgb;
 				float3 Emission = 0;
 				float Alpha = tex2DNode20.a;
-				float AlphaClipThreshold = 0.5;
+				float AlphaClipThreshold = _AlphaClipThreshold;
 
 				#ifdef _ALPHATEST_ON
 					clip(Alpha - AlphaClipThreshold);
@@ -2113,6 +2118,7 @@ Shader "TreeItImporter/Leafs_URP"
 			float4 _BumpMap_ST;
 			float4 _Roughness_ST;
 			float4 _Translucency_ST;
+			float _AlphaClipThreshold;
 			float _WindEdges;
 			float _WindVariation;
 			float _WindStrenght;
@@ -2347,7 +2353,7 @@ Shader "TreeItImporter/Leafs_URP"
 
 				float3 BaseColor = ( _Color * tex2DNode20 ).rgb;
 				float Alpha = tex2DNode20.a;
-				float AlphaClipThreshold = 0.5;
+				float AlphaClipThreshold = _AlphaClipThreshold;
 
 				half4 color = half4(BaseColor, Alpha );
 
@@ -2486,6 +2492,7 @@ Shader "TreeItImporter/Leafs_URP"
 			float4 _BumpMap_ST;
 			float4 _Roughness_ST;
 			float4 _Translucency_ST;
+			float _AlphaClipThreshold;
 			float _WindEdges;
 			float _WindVariation;
 			float _WindStrenght;
@@ -2745,7 +2752,7 @@ Shader "TreeItImporter/Leafs_URP"
 
 				float3 Normal = UnpackNormalScale( tex2D( _BumpMap, uv_BumpMap ), 1.0f );
 				float Alpha = tex2DNode20.a;
-				float AlphaClipThreshold = 0.5;
+				float AlphaClipThreshold = _AlphaClipThreshold;
 
 				#ifdef ASE_DEPTH_WRITE_ON
 					float DepthValue = IN.positionCS.z;
@@ -2887,6 +2894,7 @@ Shader "TreeItImporter/Leafs_URP"
 			float4 _BumpMap_ST;
 			float4 _Roughness_ST;
 			float4 _Translucency_ST;
+			float _AlphaClipThreshold;
 			float _WindEdges;
 			float _WindVariation;
 			float _WindStrenght;
@@ -3105,7 +3113,7 @@ Shader "TreeItImporter/Leafs_URP"
 				
 
 				surfaceDescription.Alpha = tex2DNode20.a;
-				surfaceDescription.AlphaClipThreshold = 0.5;
+				surfaceDescription.AlphaClipThreshold = _AlphaClipThreshold;
 
 				#if _ALPHATEST_ON
 					float alphaClipThreshold = 0.01f;
@@ -3222,6 +3230,7 @@ Shader "TreeItImporter/Leafs_URP"
 			float4 _BumpMap_ST;
 			float4 _Roughness_ST;
 			float4 _Translucency_ST;
+			float _AlphaClipThreshold;
 			float _WindEdges;
 			float _WindVariation;
 			float _WindStrenght;
@@ -3439,7 +3448,7 @@ Shader "TreeItImporter/Leafs_URP"
 				
 
 				surfaceDescription.Alpha = tex2DNode20.a;
-				surfaceDescription.AlphaClipThreshold = 0.5;
+				surfaceDescription.AlphaClipThreshold = _AlphaClipThreshold;
 
 				#if _ALPHATEST_ON
 					float alphaClipThreshold = 0.01f;
@@ -3751,6 +3760,7 @@ Shader "TreeItImporter/Leafs_URP"
 			CBUFFER_START(UnityPerMaterial)
 			float4 _Color;
 			float4 _MainTex_ST;
+			float _AlphaClipThreshold;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
 			#endif
@@ -4003,7 +4013,7 @@ Shader "TreeItImporter/Leafs_URP"
 				float Smoothness = 0.5;
 				float Occlusion = 1;
 				float Alpha = tex2DNode20.a;
-				float AlphaClipThreshold = 0.5;
+				float AlphaClipThreshold = _AlphaClipThreshold;
 				float AlphaClipThresholdShadow = 0.5;
 				float3 BakedGI = 0;
 				float3 RefractionColor = 1;
@@ -4338,6 +4348,7 @@ Shader "TreeItImporter/Leafs_URP"
 			CBUFFER_START(UnityPerMaterial)
 			float4 _Color;
 			float4 _MainTex_ST;
+			float _AlphaClipThreshold;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
 			#endif
@@ -4525,7 +4536,7 @@ Shader "TreeItImporter/Leafs_URP"
 				
 
 				float Alpha = tex2DNode20.a;
-				float AlphaClipThreshold = 0.5;
+				float AlphaClipThreshold = _AlphaClipThreshold;
 
 				#ifdef ASE_DEPTH_WRITE_ON
 					float DepthValue = IN.positionCS.z;
@@ -4629,6 +4640,7 @@ Shader "TreeItImporter/Leafs_URP"
 			CBUFFER_START(UnityPerMaterial)
 			float4 _Color;
 			float4 _MainTex_ST;
+			float _AlphaClipThreshold;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
 			#endif
@@ -4831,7 +4843,7 @@ Shader "TreeItImporter/Leafs_URP"
 				float3 BaseColor = ( _Color * tex2DNode20 ).rgb;
 				float3 Emission = 0;
 				float Alpha = tex2DNode20.a;
-				float AlphaClipThreshold = 0.5;
+				float AlphaClipThreshold = _AlphaClipThreshold;
 
 				#ifdef _ALPHATEST_ON
 					clip(Alpha - AlphaClipThreshold);
@@ -4927,6 +4939,7 @@ Shader "TreeItImporter/Leafs_URP"
 			CBUFFER_START(UnityPerMaterial)
 			float4 _Color;
 			float4 _MainTex_ST;
+			float _AlphaClipThreshold;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
 			#endif
@@ -5109,7 +5122,7 @@ Shader "TreeItImporter/Leafs_URP"
 
 				float3 BaseColor = ( _Color * tex2DNode20 ).rgb;
 				float Alpha = tex2DNode20.a;
-				float AlphaClipThreshold = 0.5;
+				float AlphaClipThreshold = _AlphaClipThreshold;
 
 				half4 color = half4(BaseColor, Alpha );
 
@@ -5237,6 +5250,7 @@ Shader "TreeItImporter/Leafs_URP"
 			CBUFFER_START(UnityPerMaterial)
 			float4 _Color;
 			float4 _MainTex_ST;
+			float _AlphaClipThreshold;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
 			#endif
@@ -5441,7 +5455,7 @@ Shader "TreeItImporter/Leafs_URP"
 
 				float3 Normal = float3(0, 0, 1);
 				float Alpha = tex2DNode20.a;
-				float AlphaClipThreshold = 0.5;
+				float AlphaClipThreshold = _AlphaClipThreshold;
 
 				#ifdef ASE_DEPTH_WRITE_ON
 					float DepthValue = IN.positionCS.z;
@@ -5640,6 +5654,7 @@ Shader "TreeItImporter/Leafs_URP"
 			CBUFFER_START(UnityPerMaterial)
 			float4 _Color;
 			float4 _MainTex_ST;
+			float _AlphaClipThreshold;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
 			#endif
@@ -5887,7 +5902,7 @@ Shader "TreeItImporter/Leafs_URP"
 				float Smoothness = 0.5;
 				float Occlusion = 1;
 				float Alpha = tex2DNode20.a;
-				float AlphaClipThreshold = 0.5;
+				float AlphaClipThreshold = _AlphaClipThreshold;
 				float AlphaClipThresholdShadow = 0.5;
 				float3 BakedGI = 0;
 				float3 RefractionColor = 1;
@@ -6072,6 +6087,7 @@ Shader "TreeItImporter/Leafs_URP"
 			CBUFFER_START(UnityPerMaterial)
 			float4 _Color;
 			float4 _MainTex_ST;
+			float _AlphaClipThreshold;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
 			#endif
@@ -6238,7 +6254,7 @@ Shader "TreeItImporter/Leafs_URP"
 				
 
 				surfaceDescription.Alpha = tex2DNode20.a;
-				surfaceDescription.AlphaClipThreshold = 0.5;
+				surfaceDescription.AlphaClipThreshold = _AlphaClipThreshold;
 
 				#if _ALPHATEST_ON
 					float alphaClipThreshold = 0.01f;
@@ -6344,6 +6360,7 @@ Shader "TreeItImporter/Leafs_URP"
 			CBUFFER_START(UnityPerMaterial)
 			float4 _Color;
 			float4 _MainTex_ST;
+			float _AlphaClipThreshold;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
 			#endif
@@ -6509,7 +6526,7 @@ Shader "TreeItImporter/Leafs_URP"
 				
 
 				surfaceDescription.Alpha = tex2DNode20.a;
-				surfaceDescription.AlphaClipThreshold = 0.5;
+				surfaceDescription.AlphaClipThreshold = _AlphaClipThreshold;
 
 				#if _ALPHATEST_ON
 					float alphaClipThreshold = 0.01f;
@@ -6544,14 +6561,14 @@ Shader "TreeItImporter/Leafs_URP"
 /*ASEBEGIN
 Version=19501
 Node;AmplifyShaderEditor.WorldPosInputsNode;82;-2432,2304;Inherit;False;0;4;FLOAT3;0;FLOAT;1;FLOAT;2;FLOAT;3
-Node;AmplifyShaderEditor.RangedFloatNode;84;-2432,2496;Inherit;False;Property;_NoiseSize;Noise Size;5;0;Create;True;0;0;0;False;0;False;1;1;0;10;0;1;FLOAT;0
+Node;AmplifyShaderEditor.RangedFloatNode;84;-2432,2496;Inherit;False;Property;_NoiseSize;Noise Size;6;0;Create;True;0;0;0;False;0;False;1;1;0;10;0;1;FLOAT;0
 Node;AmplifyShaderEditor.SimpleTimeNode;88;-2048,2560;Inherit;False;1;0;FLOAT;1;False;1;FLOAT;0
 Node;AmplifyShaderEditor.VertexColorNode;22;-2304,1952;Inherit;False;0;5;COLOR;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
-Node;AmplifyShaderEditor.RangedFloatNode;89;-2048,2464;Inherit;False;Property;_WindScroll;WindScroll;6;0;Create;True;0;0;0;False;0;False;0.3;0.3;0;0;0;1;FLOAT;0
+Node;AmplifyShaderEditor.RangedFloatNode;89;-2048,2464;Inherit;False;Property;_WindScroll;WindScroll;7;0;Create;True;0;0;0;False;0;False;0.3;0.3;0;0;0;1;FLOAT;0
 Node;AmplifyShaderEditor.DynamicAppendNode;83;-2176,2304;Inherit;False;FLOAT2;4;0;FLOAT;0;False;1;FLOAT;0;False;2;FLOAT;0;False;3;FLOAT;0;False;1;FLOAT2;0
-Node;AmplifyShaderEditor.RangedFloatNode;103;-2176,1664;Inherit;False;Property;_WindEdges;WindEdges;7;0;Create;True;0;0;0;False;0;False;0.2;0.2;0;1;0;1;FLOAT;0
-Node;AmplifyShaderEditor.RangedFloatNode;104;-2176,1760;Inherit;False;Property;_WindVariation;WindVariation;8;0;Create;True;0;0;0;False;0;False;0.2;0.2;0;1;0;1;FLOAT;0
-Node;AmplifyShaderEditor.RangedFloatNode;105;-2176,1856;Inherit;False;Property;_WindStrenght;WindStrenght;9;0;Create;True;0;0;0;False;0;False;0.2;0.2;0;1;0;1;FLOAT;0
+Node;AmplifyShaderEditor.RangedFloatNode;103;-2176,1664;Inherit;False;Property;_WindEdges;WindEdges;8;0;Create;True;0;0;0;False;0;False;0.2;0.2;0;1;0;1;FLOAT;0
+Node;AmplifyShaderEditor.RangedFloatNode;104;-2176,1760;Inherit;False;Property;_WindVariation;WindVariation;9;0;Create;True;0;0;0;False;0;False;0.2;0.2;0;1;0;1;FLOAT;0
+Node;AmplifyShaderEditor.RangedFloatNode;105;-2176,1856;Inherit;False;Property;_WindStrenght;WindStrenght;10;0;Create;True;0;0;0;False;0;False;0.2;0.2;0;1;0;1;FLOAT;0
 Node;AmplifyShaderEditor.BreakToComponentsNode;29;-2016,1952;Inherit;False;COLOR;1;0;COLOR;0,0,0,0;False;16;FLOAT;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4;FLOAT;5;FLOAT;6;FLOAT;7;FLOAT;8;FLOAT;9;FLOAT;10;FLOAT;11;FLOAT;12;FLOAT;13;FLOAT;14;FLOAT;15
 Node;AmplifyShaderEditor.SimpleMultiplyOpNode;86;-1984,2304;Inherit;False;2;2;0;FLOAT2;0,0;False;1;FLOAT;0;False;1;FLOAT2;0
 Node;AmplifyShaderEditor.SimpleMultiplyOpNode;90;-1856,2464;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
@@ -6580,13 +6597,13 @@ Node;AmplifyShaderEditor.SamplerNode;30;-1536,0;Inherit;True;Property;_TextureSa
 Node;AmplifyShaderEditor.ColorNode;10;-1536,-512;Inherit;False;Property;_Color;Color;0;0;Create;True;0;0;0;True;0;False;1,1,1,1;1,1,1,1;True;True;0;6;COLOR;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4;FLOAT3;5
 Node;AmplifyShaderEditor.SimpleMultiplyOpNode;31;-1024,-256;Inherit;True;2;2;0;COLOR;0,0,0,0;False;1;COLOR;0,0,0,0;False;1;COLOR;0
 Node;AmplifyShaderEditor.TexturePropertyNode;23;-1792,0;Inherit;True;Property;_BumpMap;Normal Map;2;1;[Normal];Create;False;0;0;0;False;0;False;None;None;True;bump;Auto;Texture2D;-1;0;2;SAMPLER2D;0;SAMPLERSTATE;1
-Node;AmplifyShaderEditor.RangedFloatNode;71;-896,128;Inherit;False;Constant;_Metallic;Metallic;4;0;Create;True;0;0;0;False;0;False;0;0;0;1;0;1;FLOAT;0
 Node;AmplifyShaderEditor.GetLocalVarNode;101;-896,640;Inherit;False;100;quadScatter;1;0;OBJECT;;False;1;FLOAT4;0
-Node;AmplifyShaderEditor.RangedFloatNode;34;-896,384;Inherit;False;Constant;_AlphaClipThreshold;Alpha Clip Threshold;4;0;Create;True;0;0;0;False;0;False;0.5;0;0;1;0;1;FLOAT;0
 Node;AmplifyShaderEditor.WireNode;150;-656,496;Inherit;False;1;0;COLOR;0,0,0,0;False;1;COLOR;0
 Node;AmplifyShaderEditor.WireNode;151;-656,320;Inherit;False;1;0;FLOAT;0;False;1;FLOAT;0
 Node;AmplifyShaderEditor.WireNode;152;-399.8022,-81.45258;Inherit;False;1;0;COLOR;0,0,0,0;False;1;COLOR;0
 Node;AmplifyShaderEditor.OneMinusNode;75;-640,224;Inherit;False;1;0;FLOAT;0;False;1;FLOAT;0
+Node;AmplifyShaderEditor.RangedFloatNode;71;-896,128;Inherit;False;Constant;_Metallic;Metallic;4;0;Create;True;0;0;0;False;0;False;0;0;0;1;0;1;FLOAT;0
+Node;AmplifyShaderEditor.RangedFloatNode;34;-896,384;Inherit;False;Property;_AlphaClipThreshold;Alpha Clip Threshold;5;0;Create;True;0;0;0;True;0;False;0.5;0.5;0;1;0;1;FLOAT;0
 Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;0;0,0;Float;False;False;-1;2;UnityEditor.ShaderGraphLitGUI;0;12;New Amplify Shader;94348b07e5e8bab40bd6c8a1e3df54cd;True;ExtraPrePass;0;0;ExtraPrePass;5;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;0;False;;False;False;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;1;False;;True;3;False;;True;True;0;False;;0;False;;True;4;RenderPipeline=UniversalPipeline;RenderType=Opaque=RenderType;Queue=Geometry=Queue=0;UniversalMaterialType=Lit;True;5;True;12;all;0;False;True;1;1;False;;0;False;;0;1;False;;0;False;;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;True;True;True;True;0;False;;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;1;False;;True;3;False;;True;True;0;False;;0;False;;True;0;False;False;0;;0;0;Standard;0;False;0
 Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;2;0,0;Float;False;False;-1;2;UnityEditor.ShaderGraphLitGUI;0;12;New Amplify Shader;94348b07e5e8bab40bd6c8a1e3df54cd;True;ShadowCaster;0;2;ShadowCaster;0;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;0;False;;False;False;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;1;False;;True;3;False;;True;True;0;False;;0;False;;True;4;RenderPipeline=UniversalPipeline;RenderType=Opaque=RenderType;Queue=Geometry=Queue=0;UniversalMaterialType=Lit;True;5;True;12;all;0;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;False;False;True;False;False;False;False;0;False;;False;False;False;False;False;False;False;False;False;True;1;False;;True;3;False;;False;True;1;LightMode=ShadowCaster;False;False;0;;0;0;Standard;0;False;0
 Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;3;0,0;Float;False;False;-1;2;UnityEditor.ShaderGraphLitGUI;0;12;New Amplify Shader;94348b07e5e8bab40bd6c8a1e3df54cd;True;DepthOnly;0;3;DepthOnly;0;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;0;False;;False;False;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;1;False;;True;3;False;;True;True;0;False;;0;False;;True;4;RenderPipeline=UniversalPipeline;RenderType=Opaque=RenderType;Queue=Geometry=Queue=0;UniversalMaterialType=Lit;True;5;True;12;all;0;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;False;False;True;True;False;False;False;0;False;;False;False;False;False;False;False;False;False;False;True;1;False;;False;False;True;1;LightMode=DepthOnly;False;False;0;;0;0;Standard;0;False;0
@@ -6663,4 +6680,4 @@ WireConnection;1;7;34;0
 WireConnection;1;15;150;0
 WireConnection;1;8;101;0
 ASEEND*/
-//CHKSM=9F0E2B109F094648D63B4D8B8B7A8D98CB570543
+//CHKSM=46D5BCCAF027A1B5970BE5B3E8D4F6841DDDDDD0
