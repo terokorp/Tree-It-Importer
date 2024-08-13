@@ -3,6 +3,8 @@
 [![GitHub latest release](https://img.shields.io/github/v/release/KoodaaNet/net.koodaa.treeit-importer?color=green)](https://github.com/KoodaaNet/net.koodaa.treeit-importer/releases/latest)
 [![GitHub license](https://img.shields.io/github/license/KoodaaNet/net.koodaa.treeit-importer)](https://github.com/KoodaaNet/net.koodaa.treeit-importer/blob/master/LICENSE.md)
 
+[![GitHub package.json version](https://img.shields.io/github/package-json/v/KoodaaNet/net.koodaa.treeit-importer)](https://github.com/KoodaaNet/net.koodaa.treeit-importer/releases)
+
 This tool creates Unity tree prefabs from Tree It .tre files easily.
 
 This tool is made and tested with Unity 2022.3.35f1, but might work with older versions. Test and report how it goes.
