@@ -40,4 +40,4 @@ Install using UPM Package Git URL:
 
 ## License
 
-- [MIT License](./LICENSE.txt)
+- [MIT License](./LICENSE.md)
