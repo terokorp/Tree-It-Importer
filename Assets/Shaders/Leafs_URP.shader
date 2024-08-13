@@ -1,6 +1,6 @@
-// Made with Amplify Shader Editor v1.9.3.2
+// Made with Amplify Shader Editor v1.9.5.1
 // Available at the Unity Asset Store - http://u3d.as/y3X 
-Shader "TreeIt"
+Shader "TreeItImporter/Leafs_URP"
 {
 	Properties
 	{
@@ -8,7 +8,7 @@ Shader "TreeIt"
 		[HideInInspector] _EmissionColor("Emission Color", Color) = (1,1,1,1)
 		_Color("Color", Color) = (1,1,1,1)
 		_MainTex("MainTex", 2D) = "white" {}
-		_BumpMap("BumpMap", 2D) = "bump" {}
+		[Normal]_BumpMap("Normal Map", 2D) = "bump" {}
 		_Roughness("Roughness", 2D) = "white" {}
 		_Translucency("Translucency", 2D) = "white" {}
 		_NoiseSize("Noise Size", Range( 0 , 10)) = 1
@@ -16,7 +16,6 @@ Shader "TreeIt"
 		_WindEdges("WindEdges", Range( 0 , 1)) = 0.2
 		_WindVariation("WindVariation", Range( 0 , 1)) = 0.2
 		_WindStrenght("WindStrenght", Range( 0 , 1)) = 0.2
-		[Toggle(_ENABLE_WIND_ON)] _ENABLE_WIND("ENABLE_WIND", Float) = 0
 		[HideInInspector] _texcoord( "", 2D ) = "white" {}
 
 
@@ -28,14 +27,14 @@ Shader "TreeIt"
 		_TransAmbient( "Ambient", Range( 0, 1 ) ) = 0.1
 		_TransShadow( "Shadow", Range( 0, 1 ) ) = 0.5
 		//_TessPhongStrength( "Tess Phong Strength", Range( 0, 1 ) ) = 0.5
-		//_TessValue( "Tess Max Tessellation", Range( 1, 32 ) ) = 16
-		//_TessMin( "Tess Min Distance", Float ) = 10
-		//_TessMax( "Tess Max Distance", Float ) = 25
+		_TessValue( "Max Tessellation", Range( 1, 32 ) ) = 16
+		_TessMin( "Tess Min Distance", Float ) = 10
+		_TessMax( "Tess Max Distance", Float ) = 25
 		//_TessEdgeLength ( "Tess Edge length", Range( 2, 50 ) ) = 16
 		//_TessMaxDisp( "Tess Max Displacement", Float ) = 25
 
-		[HideInInspector][ToggleOff] _SpecularHighlights("Specular Highlights", Float) = 1.0
-		[HideInInspector][ToggleOff] _EnvironmentReflections("Environment Reflections", Float) = 1.0
+		[HideInInspector][ToggleOff] _SpecularHighlights("Specular Highlights", Float) = 1
+		[HideInInspector][ToggleOff] _EnvironmentReflections("Environment Reflections", Float) = 1
 		[HideInInspector][ToggleOff] _ReceiveShadows("Receive Shadows", Float) = 1.0
 
 		[HideInInspector] _QueueOffset("_QueueOffset", Float) = 0
@@ -190,23 +189,31 @@ Shader "TreeIt"
 
 			HLSLPROGRAM
 
+			
+
 			#define _NORMAL_DROPOFF_TS 1
+			#pragma shader_feature_local _RECEIVE_SHADOWS_OFF
+			#pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
 			#pragma multi_compile_instancing
 			#pragma instancing_options renderinglayer
 			#pragma multi_compile _ LOD_FADE_CROSSFADE
 			#define _SURFACE_TYPE_TRANSPARENT 1
+			#define ASE_TRANSLUCENCY 1
+			#define ASE_ABSOLUTE_VERTEX_POS 1
 			#pragma multi_compile_fog
 			#define ASE_FOG 1
-			#define ASE_TRANSLUCENCY 1
+			#define ASE_DISTANCE_TESSELLATION
 			#pragma multi_compile _ DEBUG_DISPLAY
+			#define ASE_TESSELLATION 1
+			#pragma require tessellation tessHW
+			#pragma hull HullFunction
+			#pragma domain DomainFunction
 			#define _ALPHATEST_ON 1
 			#define _NORMALMAP 1
 			#define ASE_SRP_VERSION 140011
 
 
-			#pragma shader_feature_local _RECEIVE_SHADOWS_OFF
-			#pragma shader_feature_local_fragment _SPECULARHIGHLIGHTS_OFF
-			#pragma shader_feature_local_fragment _ENVIRONMENTREFLECTIONS_OFF
+			
 
 			#pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
 			#pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
@@ -225,13 +232,10 @@ Shader "TreeIt"
 			#pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
            
 
-			#pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
 			#pragma multi_compile_fragment _ _DBUFFER_MRT1 _DBUFFER_MRT2 _DBUFFER_MRT3
 			#pragma multi_compile _ _LIGHT_LAYERS
 			#pragma multi_compile_fragment _ _LIGHT_COOKIES
 			#pragma multi_compile _ _FORWARD_PLUS
-		
-			
 
 			
 
@@ -244,6 +248,10 @@ Shader "TreeIt"
 
 			#pragma vertex vert
 			#pragma fragment frag
+
+			#if defined(_SPECULAR_SETUP) && defined(_ASE_LIGHTING_SIMPLE)
+				#define _SPECULAR_COLOR 1
+			#endif
 
 			#define SHADERPASS SHADERPASS_FORWARD
 
@@ -267,12 +275,14 @@ Shader "TreeIt"
 			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
 
 			
-            #if ASE_SRP_VERSION >=140010
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
+           
+
+			
+            #if ASE_SRP_VERSION >=140009
 			#include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
 			#endif
 		
-
-			
 
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
@@ -287,8 +297,8 @@ Shader "TreeIt"
 				#define ENABLE_TERRAIN_PERPIXEL_NORMAL
 			#endif
 
-			#define ASE_NEEDS_VERT_NORMAL
-			#pragma multi_compile_local __ _ENABLE_WIND_ON
+			#define ASE_NEEDS_VERT_POSITION
+			#pragma multi_compile __ _WIND
 
 
 			#if defined(ASE_EARLY_Z_DEPTH_OPTIMIZE) && (SHADER_TARGET >= 45)
@@ -332,16 +342,16 @@ Shader "TreeIt"
 			};
 
 			CBUFFER_START(UnityPerMaterial)
-			float4 _MainTex_ST;
 			float4 _Color;
+			float4 _MainTex_ST;
 			float4 _BumpMap_ST;
 			float4 _Roughness_ST;
 			float4 _Translucency_ST;
-			float _WindScroll;
-			float _NoiseSize;
 			float _WindEdges;
 			float _WindVariation;
 			float _WindStrenght;
+			float _WindScroll;
+			float _NoiseSize;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
 			#endif
@@ -416,16 +426,17 @@ Shader "TreeIt"
 				UNITY_TRANSFER_INSTANCE_ID(v, o);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
+				float4 transform143 = mul(GetWorldToObjectMatrix(),_WindDirection);
+				float4 break29 = v.ase_color;
 				float3 ase_worldPos = TransformObjectToWorld( (v.positionOS).xyz );
 				float2 appendResult83 = (float2(ase_worldPos.x , ase_worldPos.z));
 				float2 panner87 = ( ( _WindScroll * _TimeParameters.x ) * float2( 1,1 ) + ( appendResult83 * _NoiseSize ));
 				float simplePerlin2D85 = snoise( panner87 );
 				simplePerlin2D85 = simplePerlin2D85*0.5 + 0.5;
-				float4 break29 = v.ase_color;
-				#ifdef _ENABLE_WIND_ON
-				float4 staticSwitch115 = ( float4( v.normalOS , 0.0 ) * ( simplePerlin2D85 * ( ( _WindEdges * break29.r ) + ( _WindVariation * break29.g ) + ( _WindStrenght * break29.b ) ) ) * _WindDirection * _Wind[clamp(0,0,(4 - 1))] );
+				#ifdef _WIND
+				float4 staticSwitch115 = ( float4( v.positionOS.xyz , 0.0 ) + ( transform143 * ( ( ( _WindEdges * break29.r ) + ( _WindVariation * break29.g ) + ( _WindStrenght * break29.b ) ) * simplePerlin2D85 ) * _Wind[clamp(0,0,(4 - 1))] ) );
 				#else
-				float4 staticSwitch115 = float4( float3(0,0,0) , 0.0 );
+				float4 staticSwitch115 = float4( v.positionOS.xyz , 0.0 );
 				#endif
 				float4 quadScatter100 = staticSwitch115;
 				
@@ -629,10 +640,8 @@ Shader "TreeIt"
 
 				WorldViewDirection = SafeNormalize( WorldViewDirection );
 
-				float4 color15 = IsGammaSpace() ? float4(1,1,1,1) : float4(1,1,1,1);
 				float2 uv_MainTex = IN.ase_texcoord8.xy * _MainTex_ST.xy + _MainTex_ST.zw;
 				float4 tex2DNode20 = tex2D( _MainTex, uv_MainTex );
-				float4 temp_output_31_0 = ( color15 * _Color * tex2DNode20 );
 				
 				float2 uv_BumpMap = IN.ase_texcoord8.xy * _BumpMap_ST.xy + _BumpMap_ST.zw;
 				
@@ -641,7 +650,7 @@ Shader "TreeIt"
 				float2 uv_Translucency = IN.ase_texcoord8.xy * _Translucency_ST.xy + _Translucency_ST.zw;
 				
 
-				float3 BaseColor = temp_output_31_0.rgb;
+				float3 BaseColor = ( _Color * tex2DNode20 ).rgb;
 				float3 Normal = UnpackNormalScale( tex2D( _BumpMap, uv_BumpMap ), 1.0f );
 				float3 Emission = 0;
 				float3 Specular = 0.5;
@@ -649,7 +658,7 @@ Shader "TreeIt"
 				float Smoothness = ( 1.0 - tex2D( _Roughness, uv_Roughness ).r );
 				float Occlusion = 1;
 				float Alpha = tex2DNode20.a;
-				float AlphaClipThreshold = 0.0;
+				float AlphaClipThreshold = 0.5;
 				float AlphaClipThresholdShadow = 0.5;
 				float3 BakedGI = 0;
 				float3 RefractionColor = 1;
@@ -751,7 +760,11 @@ Shader "TreeIt"
 					ApplyDecalToSurfaceData(IN.positionCS, surfaceData, inputData);
 				#endif
 
-				half4 color = UniversalFragmentPBR( inputData, surfaceData);
+				#ifdef _ASE_LIGHTING_SIMPLE
+					half4 color = UniversalFragmentBlinnPhong( inputData, surfaceData);
+				#else
+					half4 color = UniversalFragmentPBR( inputData, surfaceData);
+				#endif
 
 				#ifdef ASE_TRANSMISSION
 				{
@@ -894,24 +907,36 @@ Shader "TreeIt"
 
 			HLSLPROGRAM
 
+			
+
 			#define _NORMAL_DROPOFF_TS 1
 			#pragma multi_compile_instancing
 			#pragma multi_compile _ LOD_FADE_CROSSFADE
 			#define _SURFACE_TYPE_TRANSPARENT 1
-			#define ASE_FOG 1
 			#define ASE_TRANSLUCENCY 1
+			#define ASE_ABSOLUTE_VERTEX_POS 1
+			#define ASE_FOG 1
+			#define ASE_DISTANCE_TESSELLATION
 			#pragma multi_compile _ DEBUG_DISPLAY
+			#define ASE_TESSELLATION 1
+			#pragma require tessellation tessHW
+			#pragma hull HullFunction
+			#pragma domain DomainFunction
 			#define _ALPHATEST_ON 1
 			#define _NORMALMAP 1
 			#define ASE_SRP_VERSION 140011
 
 
-			#pragma multi_compile_vertex _ _CASTING_PUNCTUAL_LIGHT_SHADOW
-
 			
+
+			#pragma multi_compile_vertex _ _CASTING_PUNCTUAL_LIGHT_SHADOW
 
 			#pragma vertex vert
 			#pragma fragment frag
+
+			#if defined(_SPECULAR_SETUP) && defined(_ASE_LIGHTING_SIMPLE)
+				#define _SPECULAR_COLOR 1
+			#endif
 
 			#define SHADERPASS SHADERPASS_SHADOWCASTER
 
@@ -929,12 +954,14 @@ Shader "TreeIt"
 			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
 
 			
-            #if ASE_SRP_VERSION >=140010
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
+           
+
+			
+            #if ASE_SRP_VERSION >=140009
 			#include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
 			#endif
 		
-
-			
 
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
 			#include "Packages/com.unity.render-pipelines.universal/Editor/ShaderGraph/Includes/ShaderPass.hlsl"
@@ -943,8 +970,8 @@ Shader "TreeIt"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
             #endif
 
-			#define ASE_NEEDS_VERT_NORMAL
-			#pragma multi_compile_local __ _ENABLE_WIND_ON
+			#define ASE_NEEDS_VERT_POSITION
+			#pragma multi_compile __ _WIND
 
 
 			#if defined(ASE_EARLY_Z_DEPTH_OPTIMIZE) && (SHADER_TARGET >= 45)
@@ -980,16 +1007,16 @@ Shader "TreeIt"
 			};
 
 			CBUFFER_START(UnityPerMaterial)
-			float4 _MainTex_ST;
 			float4 _Color;
+			float4 _MainTex_ST;
 			float4 _BumpMap_ST;
 			float4 _Roughness_ST;
 			float4 _Translucency_ST;
-			float _WindScroll;
-			float _NoiseSize;
 			float _WindEdges;
 			float _WindVariation;
 			float _WindStrenght;
+			float _WindScroll;
+			float _NoiseSize;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
 			#endif
@@ -1064,16 +1091,17 @@ Shader "TreeIt"
 				UNITY_TRANSFER_INSTANCE_ID(v, o);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO( o );
 
+				float4 transform143 = mul(GetWorldToObjectMatrix(),_WindDirection);
+				float4 break29 = v.ase_color;
 				float3 ase_worldPos = TransformObjectToWorld( (v.positionOS).xyz );
 				float2 appendResult83 = (float2(ase_worldPos.x , ase_worldPos.z));
 				float2 panner87 = ( ( _WindScroll * _TimeParameters.x ) * float2( 1,1 ) + ( appendResult83 * _NoiseSize ));
 				float simplePerlin2D85 = snoise( panner87 );
 				simplePerlin2D85 = simplePerlin2D85*0.5 + 0.5;
-				float4 break29 = v.ase_color;
-				#ifdef _ENABLE_WIND_ON
-				float4 staticSwitch115 = ( float4( v.normalOS , 0.0 ) * ( simplePerlin2D85 * ( ( _WindEdges * break29.r ) + ( _WindVariation * break29.g ) + ( _WindStrenght * break29.b ) ) ) * _WindDirection * _Wind[clamp(0,0,(4 - 1))] );
+				#ifdef _WIND
+				float4 staticSwitch115 = ( float4( v.positionOS.xyz , 0.0 ) + ( transform143 * ( ( ( _WindEdges * break29.r ) + ( _WindVariation * break29.g ) + ( _WindStrenght * break29.b ) ) * simplePerlin2D85 ) * _Wind[clamp(0,0,(4 - 1))] ) );
 				#else
-				float4 staticSwitch115 = float4( float3(0,0,0) , 0.0 );
+				float4 staticSwitch115 = float4( v.positionOS.xyz , 0.0 );
 				#endif
 				float4 quadScatter100 = staticSwitch115;
 				
@@ -1244,7 +1272,7 @@ Shader "TreeIt"
 				
 
 				float Alpha = tex2DNode20.a;
-				float AlphaClipThreshold = 0.0;
+				float AlphaClipThreshold = 0.5;
 				float AlphaClipThresholdShadow = 0.5;
 
 				#ifdef ASE_DEPTH_WRITE_ON
@@ -1291,9 +1319,15 @@ Shader "TreeIt"
 			#pragma multi_compile_instancing
 			#pragma multi_compile _ LOD_FADE_CROSSFADE
 			#define _SURFACE_TYPE_TRANSPARENT 1
-			#define ASE_FOG 1
 			#define ASE_TRANSLUCENCY 1
+			#define ASE_ABSOLUTE_VERTEX_POS 1
+			#define ASE_FOG 1
+			#define ASE_DISTANCE_TESSELLATION
 			#pragma multi_compile _ DEBUG_DISPLAY
+			#define ASE_TESSELLATION 1
+			#pragma require tessellation tessHW
+			#pragma hull HullFunction
+			#pragma domain DomainFunction
 			#define _ALPHATEST_ON 1
 			#define _NORMALMAP 1
 			#define ASE_SRP_VERSION 140011
@@ -1303,6 +1337,10 @@ Shader "TreeIt"
 
 			#pragma vertex vert
 			#pragma fragment frag
+
+			#if defined(_SPECULAR_SETUP) && defined(_ASE_LIGHTING_SIMPLE)
+				#define _SPECULAR_COLOR 1
+			#endif
 
 			#define SHADERPASS SHADERPASS_DEPTHONLY
 
@@ -1320,12 +1358,14 @@ Shader "TreeIt"
 			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
 
 			
-            #if ASE_SRP_VERSION >=140010
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
+           
+
+			
+            #if ASE_SRP_VERSION >=140009
 			#include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
 			#endif
 		
-
-			
 
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
 			#include "Packages/com.unity.render-pipelines.universal/Editor/ShaderGraph/Includes/ShaderPass.hlsl"
@@ -1334,8 +1374,8 @@ Shader "TreeIt"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
             #endif
 
-			#define ASE_NEEDS_VERT_NORMAL
-			#pragma multi_compile_local __ _ENABLE_WIND_ON
+			#define ASE_NEEDS_VERT_POSITION
+			#pragma multi_compile __ _WIND
 
 
 			#if defined(ASE_EARLY_Z_DEPTH_OPTIMIZE) && (SHADER_TARGET >= 45)
@@ -1371,16 +1411,16 @@ Shader "TreeIt"
 			};
 
 			CBUFFER_START(UnityPerMaterial)
-			float4 _MainTex_ST;
 			float4 _Color;
+			float4 _MainTex_ST;
 			float4 _BumpMap_ST;
 			float4 _Roughness_ST;
 			float4 _Translucency_ST;
-			float _WindScroll;
-			float _NoiseSize;
 			float _WindEdges;
 			float _WindVariation;
 			float _WindStrenght;
+			float _WindScroll;
+			float _NoiseSize;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
 			#endif
@@ -1452,16 +1492,17 @@ Shader "TreeIt"
 				UNITY_TRANSFER_INSTANCE_ID(v, o);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
+				float4 transform143 = mul(GetWorldToObjectMatrix(),_WindDirection);
+				float4 break29 = v.ase_color;
 				float3 ase_worldPos = TransformObjectToWorld( (v.positionOS).xyz );
 				float2 appendResult83 = (float2(ase_worldPos.x , ase_worldPos.z));
 				float2 panner87 = ( ( _WindScroll * _TimeParameters.x ) * float2( 1,1 ) + ( appendResult83 * _NoiseSize ));
 				float simplePerlin2D85 = snoise( panner87 );
 				simplePerlin2D85 = simplePerlin2D85*0.5 + 0.5;
-				float4 break29 = v.ase_color;
-				#ifdef _ENABLE_WIND_ON
-				float4 staticSwitch115 = ( float4( v.normalOS , 0.0 ) * ( simplePerlin2D85 * ( ( _WindEdges * break29.r ) + ( _WindVariation * break29.g ) + ( _WindStrenght * break29.b ) ) ) * _WindDirection * _Wind[clamp(0,0,(4 - 1))] );
+				#ifdef _WIND
+				float4 staticSwitch115 = ( float4( v.positionOS.xyz , 0.0 ) + ( transform143 * ( ( ( _WindEdges * break29.r ) + ( _WindVariation * break29.g ) + ( _WindStrenght * break29.b ) ) * simplePerlin2D85 ) * _Wind[clamp(0,0,(4 - 1))] ) );
 				#else
-				float4 staticSwitch115 = float4( float3(0,0,0) , 0.0 );
+				float4 staticSwitch115 = float4( v.positionOS.xyz , 0.0 );
 				#endif
 				float4 quadScatter100 = staticSwitch115;
 				
@@ -1614,7 +1655,7 @@ Shader "TreeIt"
 				
 
 				float Alpha = tex2DNode20.a;
-				float AlphaClipThreshold = 0.0;
+				float AlphaClipThreshold = 0.5;
 
 				#ifdef ASE_DEPTH_WRITE_ON
 					float DepthValue = IN.positionCS.z;
@@ -1647,21 +1688,29 @@ Shader "TreeIt"
 			Cull Off
 
 			HLSLPROGRAM
-
 			#define _NORMAL_DROPOFF_TS 1
 			#define _SURFACE_TYPE_TRANSPARENT 1
-			#define ASE_FOG 1
 			#define ASE_TRANSLUCENCY 1
+			#define ASE_ABSOLUTE_VERTEX_POS 1
+			#define ASE_FOG 1
+			#define ASE_DISTANCE_TESSELLATION
 			#pragma multi_compile _ DEBUG_DISPLAY
+			#define ASE_TESSELLATION 1
+			#pragma require tessellation tessHW
+			#pragma hull HullFunction
+			#pragma domain DomainFunction
 			#define _ALPHATEST_ON 1
 			#define _NORMALMAP 1
 			#define ASE_SRP_VERSION 140011
 
+			#pragma shader_feature EDITOR_VISUALIZATION
 
 			#pragma vertex vert
 			#pragma fragment frag
 
-			#pragma shader_feature EDITOR_VISUALIZATION
+			#if defined(_SPECULAR_SETUP) && defined(_ASE_LIGHTING_SIMPLE)
+				#define _SPECULAR_COLOR 1
+			#endif
 
 			#define SHADERPASS SHADERPASS_META
 
@@ -1673,19 +1722,21 @@ Shader "TreeIt"
 			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
 
 			
-            #if ASE_SRP_VERSION >=140010
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
+           
+
+			
+            #if ASE_SRP_VERSION >=140009
 			#include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
 			#endif
 		
-
-			
 
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/MetaInput.hlsl"
 			#include "Packages/com.unity.render-pipelines.universal/Editor/ShaderGraph/Includes/ShaderPass.hlsl"
 
-			#define ASE_NEEDS_VERT_NORMAL
-			#pragma multi_compile_local __ _ENABLE_WIND_ON
+			#define ASE_NEEDS_VERT_POSITION
+			#pragma multi_compile __ _WIND
 
 
 			struct VertexInput
@@ -1718,16 +1769,16 @@ Shader "TreeIt"
 			};
 
 			CBUFFER_START(UnityPerMaterial)
-			float4 _MainTex_ST;
 			float4 _Color;
+			float4 _MainTex_ST;
 			float4 _BumpMap_ST;
 			float4 _Roughness_ST;
 			float4 _Translucency_ST;
-			float _WindScroll;
-			float _NoiseSize;
 			float _WindEdges;
 			float _WindVariation;
 			float _WindStrenght;
+			float _WindScroll;
+			float _NoiseSize;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
 			#endif
@@ -1799,16 +1850,17 @@ Shader "TreeIt"
 				UNITY_TRANSFER_INSTANCE_ID(v, o);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
+				float4 transform143 = mul(GetWorldToObjectMatrix(),_WindDirection);
+				float4 break29 = v.ase_color;
 				float3 ase_worldPos = TransformObjectToWorld( (v.positionOS).xyz );
 				float2 appendResult83 = (float2(ase_worldPos.x , ase_worldPos.z));
 				float2 panner87 = ( ( _WindScroll * _TimeParameters.x ) * float2( 1,1 ) + ( appendResult83 * _NoiseSize ));
 				float simplePerlin2D85 = snoise( panner87 );
 				simplePerlin2D85 = simplePerlin2D85*0.5 + 0.5;
-				float4 break29 = v.ase_color;
-				#ifdef _ENABLE_WIND_ON
-				float4 staticSwitch115 = ( float4( v.normalOS , 0.0 ) * ( simplePerlin2D85 * ( ( _WindEdges * break29.r ) + ( _WindVariation * break29.g ) + ( _WindStrenght * break29.b ) ) ) * _WindDirection * _Wind[clamp(0,0,(4 - 1))] );
+				#ifdef _WIND
+				float4 staticSwitch115 = ( float4( v.positionOS.xyz , 0.0 ) + ( transform143 * ( ( ( _WindEdges * break29.r ) + ( _WindVariation * break29.g ) + ( _WindStrenght * break29.b ) ) * simplePerlin2D85 ) * _Wind[clamp(0,0,(4 - 1))] ) );
 				#else
-				float4 staticSwitch115 = float4( float3(0,0,0) , 0.0 );
+				float4 staticSwitch115 = float4( v.positionOS.xyz , 0.0 );
 				#endif
 				float4 quadScatter100 = staticSwitch115;
 				
@@ -1967,16 +2019,14 @@ Shader "TreeIt"
 					#endif
 				#endif
 
-				float4 color15 = IsGammaSpace() ? float4(1,1,1,1) : float4(1,1,1,1);
 				float2 uv_MainTex = IN.ase_texcoord4.xy * _MainTex_ST.xy + _MainTex_ST.zw;
 				float4 tex2DNode20 = tex2D( _MainTex, uv_MainTex );
-				float4 temp_output_31_0 = ( color15 * _Color * tex2DNode20 );
 				
 
-				float3 BaseColor = temp_output_31_0.rgb;
+				float3 BaseColor = ( _Color * tex2DNode20 ).rgb;
 				float3 Emission = 0;
 				float Alpha = tex2DNode20.a;
-				float AlphaClipThreshold = 0.0;
+				float AlphaClipThreshold = 0.5;
 
 				#ifdef _ALPHATEST_ON
 					clip(Alpha - AlphaClipThreshold);
@@ -2012,9 +2062,15 @@ Shader "TreeIt"
 
 			#define _NORMAL_DROPOFF_TS 1
 			#define _SURFACE_TYPE_TRANSPARENT 1
-			#define ASE_FOG 1
 			#define ASE_TRANSLUCENCY 1
+			#define ASE_ABSOLUTE_VERTEX_POS 1
+			#define ASE_FOG 1
+			#define ASE_DISTANCE_TESSELLATION
 			#pragma multi_compile _ DEBUG_DISPLAY
+			#define ASE_TESSELLATION 1
+			#pragma require tessellation tessHW
+			#pragma hull HullFunction
+			#pragma domain DomainFunction
 			#define _ALPHATEST_ON 1
 			#define _NORMALMAP 1
 			#define ASE_SRP_VERSION 140011
@@ -2022,6 +2078,10 @@ Shader "TreeIt"
 
 			#pragma vertex vert
 			#pragma fragment frag
+
+			#if defined(_SPECULAR_SETUP) && defined(_ASE_LIGHTING_SIMPLE)
+				#define _SPECULAR_COLOR 1
+			#endif
 
 			#define SHADERPASS SHADERPASS_2D
 
@@ -2033,18 +2093,20 @@ Shader "TreeIt"
 			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
 
 			
-            #if ASE_SRP_VERSION >=140010
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
+           
+
+			
+            #if ASE_SRP_VERSION >=140009
 			#include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
 			#endif
 		
 
-			
-
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
 			#include "Packages/com.unity.render-pipelines.universal/Editor/ShaderGraph/Includes/ShaderPass.hlsl"
 
-			#define ASE_NEEDS_VERT_NORMAL
-			#pragma multi_compile_local __ _ENABLE_WIND_ON
+			#define ASE_NEEDS_VERT_POSITION
+			#pragma multi_compile __ _WIND
 
 
 			struct VertexInput
@@ -2071,16 +2133,16 @@ Shader "TreeIt"
 			};
 
 			CBUFFER_START(UnityPerMaterial)
-			float4 _MainTex_ST;
 			float4 _Color;
+			float4 _MainTex_ST;
 			float4 _BumpMap_ST;
 			float4 _Roughness_ST;
 			float4 _Translucency_ST;
-			float _WindScroll;
-			float _NoiseSize;
 			float _WindEdges;
 			float _WindVariation;
 			float _WindStrenght;
+			float _WindScroll;
+			float _NoiseSize;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
 			#endif
@@ -2152,16 +2214,17 @@ Shader "TreeIt"
 				UNITY_TRANSFER_INSTANCE_ID( v, o );
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO( o );
 
+				float4 transform143 = mul(GetWorldToObjectMatrix(),_WindDirection);
+				float4 break29 = v.ase_color;
 				float3 ase_worldPos = TransformObjectToWorld( (v.positionOS).xyz );
 				float2 appendResult83 = (float2(ase_worldPos.x , ase_worldPos.z));
 				float2 panner87 = ( ( _WindScroll * _TimeParameters.x ) * float2( 1,1 ) + ( appendResult83 * _NoiseSize ));
 				float simplePerlin2D85 = snoise( panner87 );
 				simplePerlin2D85 = simplePerlin2D85*0.5 + 0.5;
-				float4 break29 = v.ase_color;
-				#ifdef _ENABLE_WIND_ON
-				float4 staticSwitch115 = ( float4( v.normalOS , 0.0 ) * ( simplePerlin2D85 * ( ( _WindEdges * break29.r ) + ( _WindVariation * break29.g ) + ( _WindStrenght * break29.b ) ) ) * _WindDirection * _Wind[clamp(0,0,(4 - 1))] );
+				#ifdef _WIND
+				float4 staticSwitch115 = ( float4( v.positionOS.xyz , 0.0 ) + ( transform143 * ( ( ( _WindEdges * break29.r ) + ( _WindVariation * break29.g ) + ( _WindStrenght * break29.b ) ) * simplePerlin2D85 ) * _Wind[clamp(0,0,(4 - 1))] ) );
 				#else
-				float4 staticSwitch115 = float4( float3(0,0,0) , 0.0 );
+				float4 staticSwitch115 = float4( v.positionOS.xyz , 0.0 );
 				#endif
 				float4 quadScatter100 = staticSwitch115;
 				
@@ -2303,15 +2366,13 @@ Shader "TreeIt"
 					#endif
 				#endif
 
-				float4 color15 = IsGammaSpace() ? float4(1,1,1,1) : float4(1,1,1,1);
 				float2 uv_MainTex = IN.ase_texcoord2.xy * _MainTex_ST.xy + _MainTex_ST.zw;
 				float4 tex2DNode20 = tex2D( _MainTex, uv_MainTex );
-				float4 temp_output_31_0 = ( color15 * _Color * tex2DNode20 );
 				
 
-				float3 BaseColor = temp_output_31_0.rgb;
+				float3 BaseColor = ( _Color * tex2DNode20 ).rgb;
 				float Alpha = tex2DNode20.a;
-				float AlphaClipThreshold = 0.0;
+				float AlphaClipThreshold = 0.5;
 
 				half4 color = half4(BaseColor, Alpha );
 
@@ -2338,24 +2399,38 @@ Shader "TreeIt"
 
 			HLSLPROGRAM
 
+			
+
+			
+
 			#define _NORMAL_DROPOFF_TS 1
 			#pragma multi_compile_instancing
 			#pragma multi_compile _ LOD_FADE_CROSSFADE
 			#define _SURFACE_TYPE_TRANSPARENT 1
-			#define ASE_FOG 1
 			#define ASE_TRANSLUCENCY 1
+			#define ASE_ABSOLUTE_VERTEX_POS 1
+			#define ASE_FOG 1
+			#define ASE_DISTANCE_TESSELLATION
 			#pragma multi_compile _ DEBUG_DISPLAY
+			#define ASE_TESSELLATION 1
+			#pragma require tessellation tessHW
+			#pragma hull HullFunction
+			#pragma domain DomainFunction
 			#define _ALPHATEST_ON 1
 			#define _NORMALMAP 1
 			#define ASE_SRP_VERSION 140011
 
 
+			
+
+			
+
 			#pragma vertex vert
 			#pragma fragment frag
 
-			
-
-			
+			#if defined(_SPECULAR_SETUP) && defined(_ASE_LIGHTING_SIMPLE)
+				#define _SPECULAR_COLOR 1
+			#endif
 
 			#define SHADERPASS SHADERPASS_DEPTHNORMALSONLY
 			//#define SHADERPASS SHADERPASS_DEPTHNORMALS
@@ -2380,12 +2455,14 @@ Shader "TreeIt"
 			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
 
 			
-            #if ASE_SRP_VERSION >=140010
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
+           
+
+			
+            #if ASE_SRP_VERSION >=140009
 			#include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
 			#endif
 		
-
-			
 
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
 			#include "Packages/com.unity.render-pipelines.universal/Editor/ShaderGraph/Includes/ShaderPass.hlsl"
@@ -2394,8 +2471,8 @@ Shader "TreeIt"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
             #endif
 
-			#define ASE_NEEDS_VERT_NORMAL
-			#pragma multi_compile_local __ _ENABLE_WIND_ON
+			#define ASE_NEEDS_VERT_POSITION
+			#pragma multi_compile __ _WIND
 
 
 			#if defined(ASE_EARLY_Z_DEPTH_OPTIMIZE) && (SHADER_TARGET >= 45)
@@ -2434,16 +2511,16 @@ Shader "TreeIt"
 			};
 
 			CBUFFER_START(UnityPerMaterial)
-			float4 _MainTex_ST;
 			float4 _Color;
+			float4 _MainTex_ST;
 			float4 _BumpMap_ST;
 			float4 _Roughness_ST;
 			float4 _Translucency_ST;
-			float _WindScroll;
-			float _NoiseSize;
 			float _WindEdges;
 			float _WindVariation;
 			float _WindStrenght;
+			float _WindScroll;
+			float _NoiseSize;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
 			#endif
@@ -2516,16 +2593,17 @@ Shader "TreeIt"
 				UNITY_TRANSFER_INSTANCE_ID(v, o);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
+				float4 transform143 = mul(GetWorldToObjectMatrix(),_WindDirection);
+				float4 break29 = v.ase_color;
 				float3 ase_worldPos = TransformObjectToWorld( (v.positionOS).xyz );
 				float2 appendResult83 = (float2(ase_worldPos.x , ase_worldPos.z));
 				float2 panner87 = ( ( _WindScroll * _TimeParameters.x ) * float2( 1,1 ) + ( appendResult83 * _NoiseSize ));
 				float simplePerlin2D85 = snoise( panner87 );
 				simplePerlin2D85 = simplePerlin2D85*0.5 + 0.5;
-				float4 break29 = v.ase_color;
-				#ifdef _ENABLE_WIND_ON
-				float4 staticSwitch115 = ( float4( v.normalOS , 0.0 ) * ( simplePerlin2D85 * ( ( _WindEdges * break29.r ) + ( _WindVariation * break29.g ) + ( _WindStrenght * break29.b ) ) ) * _WindDirection * _Wind[clamp(0,0,(4 - 1))] );
+				#ifdef _WIND
+				float4 staticSwitch115 = ( float4( v.positionOS.xyz , 0.0 ) + ( transform143 * ( ( ( _WindEdges * break29.r ) + ( _WindVariation * break29.g ) + ( _WindStrenght * break29.b ) ) * simplePerlin2D85 ) * _Wind[clamp(0,0,(4 - 1))] ) );
 				#else
-				float4 staticSwitch115 = float4( float3(0,0,0) , 0.0 );
+				float4 staticSwitch115 = float4( v.positionOS.xyz , 0.0 );
 				#endif
 				float4 quadScatter100 = staticSwitch115;
 				
@@ -2697,7 +2775,7 @@ Shader "TreeIt"
 
 				float3 Normal = UnpackNormalScale( tex2D( _BumpMap, uv_BumpMap ), 1.0f );
 				float Alpha = tex2DNode20.a;
-				float AlphaClipThreshold = 0.0;
+				float AlphaClipThreshold = 0.5;
 
 				#ifdef ASE_DEPTH_WRITE_ON
 					float DepthValue = IN.positionCS.z;
@@ -2749,570 +2827,6 @@ Shader "TreeIt"
 		Pass
 		{
 			
-			Name "GBuffer"
-			Tags { "LightMode"="UniversalGBuffer" }
-
-			Blend SrcAlpha OneMinusSrcAlpha, One OneMinusSrcAlpha
-			ZWrite On
-			ZTest LEqual
-			Offset 0 , 0
-			ColorMask RGBA
-			
-
-			HLSLPROGRAM
-
-			#define _NORMAL_DROPOFF_TS 1
-			#pragma multi_compile_instancing
-			#pragma instancing_options renderinglayer
-			#pragma multi_compile _ LOD_FADE_CROSSFADE
-			#define _SURFACE_TYPE_TRANSPARENT 1
-			#pragma multi_compile_fog
-			#define ASE_FOG 1
-			#define ASE_TRANSLUCENCY 1
-			#pragma multi_compile _ DEBUG_DISPLAY
-			#define _ALPHATEST_ON 1
-			#define _NORMALMAP 1
-			#define ASE_SRP_VERSION 140011
-
-
-			#pragma shader_feature_local _RECEIVE_SHADOWS_OFF
-			#pragma shader_feature_local_fragment _SPECULARHIGHLIGHTS_OFF
-			#pragma shader_feature_local_fragment _ENVIRONMENTREFLECTIONS_OFF
-
-			#pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
-			#pragma multi_compile_fragment _ _REFLECTION_PROBE_BLENDING
-			#pragma multi_compile_fragment _ _REFLECTION_PROBE_BOX_PROJECTION
-
-			
-
-			
-			#pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
-           
-
-			#pragma multi_compile_fragment _ _DBUFFER_MRT1 _DBUFFER_MRT2 _DBUFFER_MRT3
-			#pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT
-			#pragma multi_compile_fragment _ _RENDER_PASS_ENABLED
-      
-			
-
-			#pragma multi_compile _ LIGHTMAP_SHADOW_MIXING
-			#pragma multi_compile _ _MIXED_LIGHTING_SUBTRACTIVE
-			#pragma multi_compile _ SHADOWS_SHADOWMASK
-			#pragma multi_compile _ DIRLIGHTMAP_COMBINED
-			#pragma multi_compile _ LIGHTMAP_ON
-			#pragma multi_compile _ DYNAMICLIGHTMAP_ON
-			#pragma multi_compile_fragment _ DEBUG_DISPLAY
-
-			
-
-			#pragma vertex vert
-			#pragma fragment frag
-
-			#define SHADERPASS SHADERPASS_GBUFFER
-
-			
-            #if ASE_SRP_VERSION >=140007
-			#include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
-			#endif
-		
-
-			
-			#if ASE_SRP_VERSION >=140007
-			#include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
-			#endif
-		
-
-			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
-			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Texture.hlsl"
-			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Input.hlsl"
-			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
-
-			
-            #if ASE_SRP_VERSION >=140010
-			#include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
-			#endif
-		
-
-			
-
-			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
-			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
-			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DBuffer.hlsl"
-			#include "Packages/com.unity.render-pipelines.universal/Editor/ShaderGraph/Includes/ShaderPass.hlsl"
-
-			#if defined(LOD_FADE_CROSSFADE)
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
-            #endif
-			
-			#if defined(UNITY_INSTANCING_ENABLED) && defined(_TERRAIN_INSTANCED_PERPIXEL_NORMAL)
-				#define ENABLE_TERRAIN_PERPIXEL_NORMAL
-			#endif
-
-			#define ASE_NEEDS_VERT_NORMAL
-			#pragma multi_compile_local __ _ENABLE_WIND_ON
-
-
-			#if defined(ASE_EARLY_Z_DEPTH_OPTIMIZE) && (SHADER_TARGET >= 45)
-				#define ASE_SV_DEPTH SV_DepthLessEqual
-				#define ASE_SV_POSITION_QUALIFIERS linear noperspective centroid
-			#else
-				#define ASE_SV_DEPTH SV_Depth
-				#define ASE_SV_POSITION_QUALIFIERS
-			#endif
-
-			struct VertexInput
-			{
-				float4 positionOS : POSITION;
-				float3 normalOS : NORMAL;
-				float4 tangentOS : TANGENT;
-				float4 texcoord : TEXCOORD0;
-				float4 texcoord1 : TEXCOORD1;
-				float4 texcoord2 : TEXCOORD2;
-				float4 ase_color : COLOR;
-				UNITY_VERTEX_INPUT_INSTANCE_ID
-			};
-
-			struct VertexOutput
-			{
-				ASE_SV_POSITION_QUALIFIERS float4 positionCS : SV_POSITION;
-				float4 clipPosV : TEXCOORD0;
-				float4 lightmapUVOrVertexSH : TEXCOORD1;
-				half4 fogFactorAndVertexLight : TEXCOORD2;
-				float4 tSpace0 : TEXCOORD3;
-				float4 tSpace1 : TEXCOORD4;
-				float4 tSpace2 : TEXCOORD5;
-				#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
-				float4 shadowCoord : TEXCOORD6;
-				#endif
-				#if defined(DYNAMICLIGHTMAP_ON)
-				float2 dynamicLightmapUV : TEXCOORD7;
-				#endif
-				float4 ase_texcoord8 : TEXCOORD8;
-				UNITY_VERTEX_INPUT_INSTANCE_ID
-				UNITY_VERTEX_OUTPUT_STEREO
-			};
-
-			CBUFFER_START(UnityPerMaterial)
-			float4 _MainTex_ST;
-			float4 _Color;
-			float4 _BumpMap_ST;
-			float4 _Roughness_ST;
-			float4 _Translucency_ST;
-			float _WindScroll;
-			float _NoiseSize;
-			float _WindEdges;
-			float _WindVariation;
-			float _WindStrenght;
-			#ifdef ASE_TRANSMISSION
-				float _TransmissionShadow;
-			#endif
-			#ifdef ASE_TRANSLUCENCY
-				float _TransStrength;
-				float _TransNormal;
-				float _TransScattering;
-				float _TransDirect;
-				float _TransAmbient;
-				float _TransShadow;
-			#endif
-			#ifdef ASE_TESSELLATION
-				float _TessPhongStrength;
-				float _TessValue;
-				float _TessMin;
-				float _TessMax;
-				float _TessEdgeLength;
-				float _TessMaxDisp;
-			#endif
-			CBUFFER_END
-
-			#ifdef SCENEPICKINGPASS
-				float4 _SelectionID;
-			#endif
-
-			#ifdef SCENESELECTIONPASS
-				int _ObjectId;
-				int _PassValue;
-			#endif
-
-			float4 _WindDirection;
-			float _Wind[4];
-			sampler2D _MainTex;
-			sampler2D _BumpMap;
-			sampler2D _Roughness;
-			sampler2D _Translucency;
-
-
-			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/UnityGBuffer.hlsl"
-
-			float3 mod2D289( float3 x ) { return x - floor( x * ( 1.0 / 289.0 ) ) * 289.0; }
-			float2 mod2D289( float2 x ) { return x - floor( x * ( 1.0 / 289.0 ) ) * 289.0; }
-			float3 permute( float3 x ) { return mod2D289( ( ( x * 34.0 ) + 1.0 ) * x ); }
-			float snoise( float2 v )
-			{
-				const float4 C = float4( 0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439 );
-				float2 i = floor( v + dot( v, C.yy ) );
-				float2 x0 = v - i + dot( i, C.xx );
-				float2 i1;
-				i1 = ( x0.x > x0.y ) ? float2( 1.0, 0.0 ) : float2( 0.0, 1.0 );
-				float4 x12 = x0.xyxy + C.xxzz;
-				x12.xy -= i1;
-				i = mod2D289( i );
-				float3 p = permute( permute( i.y + float3( 0.0, i1.y, 1.0 ) ) + i.x + float3( 0.0, i1.x, 1.0 ) );
-				float3 m = max( 0.5 - float3( dot( x0, x0 ), dot( x12.xy, x12.xy ), dot( x12.zw, x12.zw ) ), 0.0 );
-				m = m * m;
-				m = m * m;
-				float3 x = 2.0 * frac( p * C.www ) - 1.0;
-				float3 h = abs( x ) - 0.5;
-				float3 ox = floor( x + 0.5 );
-				float3 a0 = x - ox;
-				m *= 1.79284291400159 - 0.85373472095314 * ( a0 * a0 + h * h );
-				float3 g;
-				g.x = a0.x * x0.x + h.x * x0.y;
-				g.yz = a0.yz * x12.xz + h.yz * x12.yw;
-				return 130.0 * dot( m, g );
-			}
-			
-
-			VertexOutput VertexFunction( VertexInput v  )
-			{
-				VertexOutput o = (VertexOutput)0;
-				UNITY_SETUP_INSTANCE_ID(v);
-				UNITY_TRANSFER_INSTANCE_ID(v, o);
-				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
-
-				float3 ase_worldPos = TransformObjectToWorld( (v.positionOS).xyz );
-				float2 appendResult83 = (float2(ase_worldPos.x , ase_worldPos.z));
-				float2 panner87 = ( ( _WindScroll * _TimeParameters.x ) * float2( 1,1 ) + ( appendResult83 * _NoiseSize ));
-				float simplePerlin2D85 = snoise( panner87 );
-				simplePerlin2D85 = simplePerlin2D85*0.5 + 0.5;
-				float4 break29 = v.ase_color;
-				#ifdef _ENABLE_WIND_ON
-				float4 staticSwitch115 = ( float4( v.normalOS , 0.0 ) * ( simplePerlin2D85 * ( ( _WindEdges * break29.r ) + ( _WindVariation * break29.g ) + ( _WindStrenght * break29.b ) ) ) * _WindDirection * _Wind[clamp(0,0,(4 - 1))] );
-				#else
-				float4 staticSwitch115 = float4( float3(0,0,0) , 0.0 );
-				#endif
-				float4 quadScatter100 = staticSwitch115;
-				
-				o.ase_texcoord8.xy = v.texcoord.xy;
-				
-				//setting value to unused interpolator channels and avoid initialization warnings
-				o.ase_texcoord8.zw = 0;
-				#ifdef ASE_ABSOLUTE_VERTEX_POS
-					float3 defaultVertexValue = v.positionOS.xyz;
-				#else
-					float3 defaultVertexValue = float3(0, 0, 0);
-				#endif
-
-				float3 vertexValue = quadScatter100.xyz;
-
-				#ifdef ASE_ABSOLUTE_VERTEX_POS
-					v.positionOS.xyz = vertexValue;
-				#else
-					v.positionOS.xyz += vertexValue;
-				#endif
-
-				v.normalOS = v.normalOS;
-				v.tangentOS = v.tangentOS;
-
-				VertexPositionInputs vertexInput = GetVertexPositionInputs( v.positionOS.xyz );
-				VertexNormalInputs normalInput = GetVertexNormalInputs( v.normalOS, v.tangentOS );
-
-				o.tSpace0 = float4( normalInput.normalWS, vertexInput.positionWS.x);
-				o.tSpace1 = float4( normalInput.tangentWS, vertexInput.positionWS.y);
-				o.tSpace2 = float4( normalInput.bitangentWS, vertexInput.positionWS.z);
-
-				#if defined(LIGHTMAP_ON)
-					OUTPUT_LIGHTMAP_UV(v.texcoord1, unity_LightmapST, o.lightmapUVOrVertexSH.xy);
-				#endif
-
-				#if defined(DYNAMICLIGHTMAP_ON)
-					o.dynamicLightmapUV.xy = v.texcoord2.xy * unity_DynamicLightmapST.xy + unity_DynamicLightmapST.zw;
-				#endif
-
-				#if !defined(LIGHTMAP_ON)
-					OUTPUT_SH(normalInput.normalWS.xyz, o.lightmapUVOrVertexSH.xyz);
-				#endif
-
-				#if defined(ENABLE_TERRAIN_PERPIXEL_NORMAL)
-					o.lightmapUVOrVertexSH.zw = v.texcoord.xy;
-					o.lightmapUVOrVertexSH.xy = v.texcoord.xy * unity_LightmapST.xy + unity_LightmapST.zw;
-				#endif
-
-				half3 vertexLight = VertexLighting( vertexInput.positionWS, normalInput.normalWS );
-
-				o.fogFactorAndVertexLight = half4(0, vertexLight);
-
-				#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
-					o.shadowCoord = GetShadowCoord( vertexInput );
-				#endif
-
-				o.positionCS = vertexInput.positionCS;
-				o.clipPosV = vertexInput.positionCS;
-				return o;
-			}
-
-			#if defined(ASE_TESSELLATION)
-			struct VertexControl
-			{
-				float4 vertex : INTERNALTESSPOS;
-				float3 normalOS : NORMAL;
-				float4 tangentOS : TANGENT;
-				float4 texcoord : TEXCOORD0;
-				float4 texcoord1 : TEXCOORD1;
-				float4 texcoord2 : TEXCOORD2;
-				float4 ase_color : COLOR;
-
-				UNITY_VERTEX_INPUT_INSTANCE_ID
-			};
-
-			struct TessellationFactors
-			{
-				float edge[3] : SV_TessFactor;
-				float inside : SV_InsideTessFactor;
-			};
-
-			VertexControl vert ( VertexInput v )
-			{
-				VertexControl o;
-				UNITY_SETUP_INSTANCE_ID(v);
-				UNITY_TRANSFER_INSTANCE_ID(v, o);
-				o.vertex = v.positionOS;
-				o.normalOS = v.normalOS;
-				o.tangentOS = v.tangentOS;
-				o.texcoord = v.texcoord;
-				o.texcoord1 = v.texcoord1;
-				o.texcoord2 = v.texcoord2;
-				o.ase_color = v.ase_color;
-				return o;
-			}
-
-			TessellationFactors TessellationFunction (InputPatch<VertexControl,3> v)
-			{
-				TessellationFactors o;
-				float4 tf = 1;
-				float tessValue = _TessValue; float tessMin = _TessMin; float tessMax = _TessMax;
-				float edgeLength = _TessEdgeLength; float tessMaxDisp = _TessMaxDisp;
-				#if defined(ASE_FIXED_TESSELLATION)
-				tf = FixedTess( tessValue );
-				#elif defined(ASE_DISTANCE_TESSELLATION)
-				tf = DistanceBasedTess(v[0].vertex, v[1].vertex, v[2].vertex, tessValue, tessMin, tessMax, GetObjectToWorldMatrix(), _WorldSpaceCameraPos );
-				#elif defined(ASE_LENGTH_TESSELLATION)
-				tf = EdgeLengthBasedTess(v[0].vertex, v[1].vertex, v[2].vertex, edgeLength, GetObjectToWorldMatrix(), _WorldSpaceCameraPos, _ScreenParams );
-				#elif defined(ASE_LENGTH_CULL_TESSELLATION)
-				tf = EdgeLengthBasedTessCull(v[0].vertex, v[1].vertex, v[2].vertex, edgeLength, tessMaxDisp, GetObjectToWorldMatrix(), _WorldSpaceCameraPos, _ScreenParams, unity_CameraWorldClipPlanes );
-				#endif
-				o.edge[0] = tf.x; o.edge[1] = tf.y; o.edge[2] = tf.z; o.inside = tf.w;
-				return o;
-			}
-
-			[domain("tri")]
-			[partitioning("fractional_odd")]
-			[outputtopology("triangle_cw")]
-			[patchconstantfunc("TessellationFunction")]
-			[outputcontrolpoints(3)]
-			VertexControl HullFunction(InputPatch<VertexControl, 3> patch, uint id : SV_OutputControlPointID)
-			{
-				return patch[id];
-			}
-
-			[domain("tri")]
-			VertexOutput DomainFunction(TessellationFactors factors, OutputPatch<VertexControl, 3> patch, float3 bary : SV_DomainLocation)
-			{
-				VertexInput o = (VertexInput) 0;
-				o.positionOS = patch[0].vertex * bary.x + patch[1].vertex * bary.y + patch[2].vertex * bary.z;
-				o.normalOS = patch[0].normalOS * bary.x + patch[1].normalOS * bary.y + patch[2].normalOS * bary.z;
-				o.tangentOS = patch[0].tangentOS * bary.x + patch[1].tangentOS * bary.y + patch[2].tangentOS * bary.z;
-				o.texcoord = patch[0].texcoord * bary.x + patch[1].texcoord * bary.y + patch[2].texcoord * bary.z;
-				o.texcoord1 = patch[0].texcoord1 * bary.x + patch[1].texcoord1 * bary.y + patch[2].texcoord1 * bary.z;
-				o.texcoord2 = patch[0].texcoord2 * bary.x + patch[1].texcoord2 * bary.y + patch[2].texcoord2 * bary.z;
-				o.ase_color = patch[0].ase_color * bary.x + patch[1].ase_color * bary.y + patch[2].ase_color * bary.z;
-				#if defined(ASE_PHONG_TESSELLATION)
-				float3 pp[3];
-				for (int i = 0; i < 3; ++i)
-					pp[i] = o.positionOS.xyz - patch[i].normalOS * (dot(o.positionOS.xyz, patch[i].normalOS) - dot(patch[i].vertex.xyz, patch[i].normalOS));
-				float phongStrength = _TessPhongStrength;
-				o.positionOS.xyz = phongStrength * (pp[0]*bary.x + pp[1]*bary.y + pp[2]*bary.z) + (1.0f-phongStrength) * o.positionOS.xyz;
-				#endif
-				UNITY_TRANSFER_INSTANCE_ID(patch[0], o);
-				return VertexFunction(o);
-			}
-			#else
-			VertexOutput vert ( VertexInput v )
-			{
-				return VertexFunction( v );
-			}
-			#endif
-
-			FragmentOutput frag ( VertexOutput IN
-								#ifdef ASE_DEPTH_WRITE_ON
-								,out float outputDepth : ASE_SV_DEPTH
-								#endif
-								 )
-			{
-				UNITY_SETUP_INSTANCE_ID(IN);
-				UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(IN);
-
-				#if defined(LOD_FADE_CROSSFADE)
-					LODFadeCrossFade( IN.positionCS );
-				#endif
-
-				#if defined(ENABLE_TERRAIN_PERPIXEL_NORMAL)
-					float2 sampleCoords = (IN.lightmapUVOrVertexSH.zw / _TerrainHeightmapRecipSize.zw + 0.5f) * _TerrainHeightmapRecipSize.xy;
-					float3 WorldNormal = TransformObjectToWorldNormal(normalize(SAMPLE_TEXTURE2D(_TerrainNormalmapTexture, sampler_TerrainNormalmapTexture, sampleCoords).rgb * 2 - 1));
-					float3 WorldTangent = -cross(GetObjectToWorldMatrix()._13_23_33, WorldNormal);
-					float3 WorldBiTangent = cross(WorldNormal, -WorldTangent);
-				#else
-					float3 WorldNormal = normalize( IN.tSpace0.xyz );
-					float3 WorldTangent = IN.tSpace1.xyz;
-					float3 WorldBiTangent = IN.tSpace2.xyz;
-				#endif
-
-				float3 WorldPosition = float3(IN.tSpace0.w,IN.tSpace1.w,IN.tSpace2.w);
-				float3 WorldViewDirection = _WorldSpaceCameraPos.xyz  - WorldPosition;
-				float4 ShadowCoords = float4( 0, 0, 0, 0 );
-
-				float4 ClipPos = IN.clipPosV;
-				float4 ScreenPos = ComputeScreenPos( IN.clipPosV );
-
-				float2 NormalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(IN.positionCS);
-
-				#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
-					ShadowCoords = IN.shadowCoord;
-				#elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
-					ShadowCoords = TransformWorldToShadowCoord( WorldPosition );
-				#else
-					ShadowCoords = float4(0, 0, 0, 0);
-				#endif
-
-				WorldViewDirection = SafeNormalize( WorldViewDirection );
-
-				float4 color15 = IsGammaSpace() ? float4(1,1,1,1) : float4(1,1,1,1);
-				float2 uv_MainTex = IN.ase_texcoord8.xy * _MainTex_ST.xy + _MainTex_ST.zw;
-				float4 tex2DNode20 = tex2D( _MainTex, uv_MainTex );
-				float4 temp_output_31_0 = ( color15 * _Color * tex2DNode20 );
-				
-				float2 uv_BumpMap = IN.ase_texcoord8.xy * _BumpMap_ST.xy + _BumpMap_ST.zw;
-				
-				float2 uv_Roughness = IN.ase_texcoord8.xy * _Roughness_ST.xy + _Roughness_ST.zw;
-				
-				float2 uv_Translucency = IN.ase_texcoord8.xy * _Translucency_ST.xy + _Translucency_ST.zw;
-				
-
-				float3 BaseColor = temp_output_31_0.rgb;
-				float3 Normal = UnpackNormalScale( tex2D( _BumpMap, uv_BumpMap ), 1.0f );
-				float3 Emission = 0;
-				float3 Specular = 0.5;
-				float Metallic = 0.0;
-				float Smoothness = ( 1.0 - tex2D( _Roughness, uv_Roughness ).r );
-				float Occlusion = 1;
-				float Alpha = tex2DNode20.a;
-				float AlphaClipThreshold = 0.0;
-				float AlphaClipThresholdShadow = 0.5;
-				float3 BakedGI = 0;
-				float3 RefractionColor = 1;
-				float RefractionIndex = 1;
-				float3 Transmission = 1;
-				float3 Translucency = tex2D( _Translucency, uv_Translucency ).rgb;
-
-				#ifdef ASE_DEPTH_WRITE_ON
-					float DepthValue = IN.positionCS.z;
-				#endif
-
-				#ifdef _ALPHATEST_ON
-					clip(Alpha - AlphaClipThreshold);
-				#endif
-
-				InputData inputData = (InputData)0;
-				inputData.positionWS = WorldPosition;
-				inputData.positionCS = IN.positionCS;
-				inputData.shadowCoord = ShadowCoords;
-
-				#ifdef _NORMALMAP
-					#if _NORMAL_DROPOFF_TS
-						inputData.normalWS = TransformTangentToWorld(Normal, half3x3( WorldTangent, WorldBiTangent, WorldNormal ));
-					#elif _NORMAL_DROPOFF_OS
-						inputData.normalWS = TransformObjectToWorldNormal(Normal);
-					#elif _NORMAL_DROPOFF_WS
-						inputData.normalWS = Normal;
-					#endif
-				#else
-					inputData.normalWS = WorldNormal;
-				#endif
-
-				inputData.normalWS = NormalizeNormalPerPixel(inputData.normalWS);
-				inputData.viewDirectionWS = SafeNormalize( WorldViewDirection );
-
-				inputData.vertexLighting = IN.fogFactorAndVertexLight.yzw;
-
-				#if defined(ENABLE_TERRAIN_PERPIXEL_NORMAL)
-					float3 SH = SampleSH(inputData.normalWS.xyz);
-				#else
-					float3 SH = IN.lightmapUVOrVertexSH.xyz;
-				#endif
-
-				#ifdef ASE_BAKEDGI
-					inputData.bakedGI = BakedGI;
-				#else
-					#if defined(DYNAMICLIGHTMAP_ON)
-						inputData.bakedGI = SAMPLE_GI( IN.lightmapUVOrVertexSH.xy, IN.dynamicLightmapUV.xy, SH, inputData.normalWS);
-					#else
-						inputData.bakedGI = SAMPLE_GI( IN.lightmapUVOrVertexSH.xy, SH, inputData.normalWS );
-					#endif
-				#endif
-
-				inputData.normalizedScreenSpaceUV = NormalizedScreenSpaceUV;
-				inputData.shadowMask = SAMPLE_SHADOWMASK(IN.lightmapUVOrVertexSH.xy);
-
-				#if defined(DEBUG_DISPLAY)
-					#if defined(DYNAMICLIGHTMAP_ON)
-						inputData.dynamicLightmapUV = IN.dynamicLightmapUV.xy;
-						#endif
-					#if defined(LIGHTMAP_ON)
-						inputData.staticLightmapUV = IN.lightmapUVOrVertexSH.xy;
-					#else
-						inputData.vertexSH = SH;
-					#endif
-				#endif
-
-				#ifdef _DBUFFER
-					ApplyDecal(IN.positionCS,
-						BaseColor,
-						Specular,
-						inputData.normalWS,
-						Metallic,
-						Occlusion,
-						Smoothness);
-				#endif
-
-				BRDFData brdfData;
-				InitializeBRDFData
-				(BaseColor, Metallic, Specular, Smoothness, Alpha, brdfData);
-
-				Light mainLight = GetMainLight(inputData.shadowCoord, inputData.positionWS, inputData.shadowMask);
-				half4 color;
-				MixRealtimeAndBakedGI(mainLight, inputData.normalWS, inputData.bakedGI, inputData.shadowMask);
-				color.rgb = GlobalIllumination(brdfData, inputData.bakedGI, Occlusion, inputData.positionWS, inputData.normalWS, inputData.viewDirectionWS);
-				color.a = Alpha;
-
-				#ifdef ASE_FINAL_COLOR_ALPHA_MULTIPLY
-					color.rgb *= color.a;
-				#endif
-
-				#ifdef ASE_DEPTH_WRITE_ON
-					outputDepth = DepthValue;
-				#endif
-
-				return BRDFDataToGbuffer(brdfData, inputData, Smoothness, Emission + color.rgb, Occlusion);
-			}
-
-			ENDHLSL
-		}
-
-		
-		Pass
-		{
-			
 			Name "SceneSelectionPass"
 			Tags { "LightMode"="SceneSelectionPass" }
 
@@ -3325,9 +2839,15 @@ Shader "TreeIt"
 
 			#define _NORMAL_DROPOFF_TS 1
 			#define _SURFACE_TYPE_TRANSPARENT 1
-			#define ASE_FOG 1
 			#define ASE_TRANSLUCENCY 1
+			#define ASE_ABSOLUTE_VERTEX_POS 1
+			#define ASE_FOG 1
+			#define ASE_DISTANCE_TESSELLATION
 			#pragma multi_compile _ DEBUG_DISPLAY
+			#define ASE_TESSELLATION 1
+			#pragma require tessellation tessHW
+			#pragma hull HullFunction
+			#pragma domain DomainFunction
 			#define _ALPHATEST_ON 1
 			#define _NORMALMAP 1
 			#define ASE_SRP_VERSION 140011
@@ -3337,6 +2857,10 @@ Shader "TreeIt"
 
 			#pragma vertex vert
 			#pragma fragment frag
+
+			#if defined(_SPECULAR_SETUP) && defined(_ASE_LIGHTING_SIMPLE)
+				#define _SPECULAR_COLOR 1
+			#endif
 
 			#define SCENESELECTIONPASS 1
 
@@ -3352,12 +2876,14 @@ Shader "TreeIt"
 			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
 
 			
-            #if ASE_SRP_VERSION >=140010
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
+           
+
+			
+            #if ASE_SRP_VERSION >=140009
 			#include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
 			#endif
 		
-
-			
 
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
 
@@ -3369,8 +2895,8 @@ Shader "TreeIt"
 
 			#include "Packages/com.unity.render-pipelines.universal/Editor/ShaderGraph/Includes/ShaderPass.hlsl"
 
-			#define ASE_NEEDS_VERT_NORMAL
-			#pragma multi_compile_local __ _ENABLE_WIND_ON
+			#define ASE_NEEDS_VERT_POSITION
+			#pragma multi_compile __ _WIND
 
 
 			struct VertexInput
@@ -3391,16 +2917,16 @@ Shader "TreeIt"
 			};
 
 			CBUFFER_START(UnityPerMaterial)
-			float4 _MainTex_ST;
 			float4 _Color;
+			float4 _MainTex_ST;
 			float4 _BumpMap_ST;
 			float4 _Roughness_ST;
 			float4 _Translucency_ST;
-			float _WindScroll;
-			float _NoiseSize;
 			float _WindEdges;
 			float _WindVariation;
 			float _WindStrenght;
+			float _WindScroll;
+			float _NoiseSize;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
 			#endif
@@ -3480,16 +3006,17 @@ Shader "TreeIt"
 				UNITY_TRANSFER_INSTANCE_ID(v, o);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
+				float4 transform143 = mul(GetWorldToObjectMatrix(),_WindDirection);
+				float4 break29 = v.ase_color;
 				float3 ase_worldPos = TransformObjectToWorld( (v.positionOS).xyz );
 				float2 appendResult83 = (float2(ase_worldPos.x , ase_worldPos.z));
 				float2 panner87 = ( ( _WindScroll * _TimeParameters.x ) * float2( 1,1 ) + ( appendResult83 * _NoiseSize ));
 				float simplePerlin2D85 = snoise( panner87 );
 				simplePerlin2D85 = simplePerlin2D85*0.5 + 0.5;
-				float4 break29 = v.ase_color;
-				#ifdef _ENABLE_WIND_ON
-				float4 staticSwitch115 = ( float4( v.normalOS , 0.0 ) * ( simplePerlin2D85 * ( ( _WindEdges * break29.r ) + ( _WindVariation * break29.g ) + ( _WindStrenght * break29.b ) ) ) * _WindDirection * _Wind[clamp(0,0,(4 - 1))] );
+				#ifdef _WIND
+				float4 staticSwitch115 = ( float4( v.positionOS.xyz , 0.0 ) + ( transform143 * ( ( ( _WindEdges * break29.r ) + ( _WindVariation * break29.g ) + ( _WindStrenght * break29.b ) ) * simplePerlin2D85 ) * _Wind[clamp(0,0,(4 - 1))] ) );
 				#else
-				float4 staticSwitch115 = float4( float3(0,0,0) , 0.0 );
+				float4 staticSwitch115 = float4( v.positionOS.xyz , 0.0 );
 				#endif
 				float4 quadScatter100 = staticSwitch115;
 				
@@ -3613,7 +3140,7 @@ Shader "TreeIt"
 				
 
 				surfaceDescription.Alpha = tex2DNode20.a;
-				surfaceDescription.AlphaClipThreshold = 0.0;
+				surfaceDescription.AlphaClipThreshold = 0.5;
 
 				#if _ALPHATEST_ON
 					float alphaClipThreshold = 0.01f;
@@ -3652,9 +3179,15 @@ Shader "TreeIt"
 
 			#define _NORMAL_DROPOFF_TS 1
 			#define _SURFACE_TYPE_TRANSPARENT 1
-			#define ASE_FOG 1
 			#define ASE_TRANSLUCENCY 1
+			#define ASE_ABSOLUTE_VERTEX_POS 1
+			#define ASE_FOG 1
+			#define ASE_DISTANCE_TESSELLATION
 			#pragma multi_compile _ DEBUG_DISPLAY
+			#define ASE_TESSELLATION 1
+			#pragma require tessellation tessHW
+			#pragma hull HullFunction
+			#pragma domain DomainFunction
 			#define _ALPHATEST_ON 1
 			#define _NORMALMAP 1
 			#define ASE_SRP_VERSION 140011
@@ -3664,6 +3197,10 @@ Shader "TreeIt"
 
 			#pragma vertex vert
 			#pragma fragment frag
+
+			#if defined(_SPECULAR_SETUP) && defined(_ASE_LIGHTING_SIMPLE)
+				#define _SPECULAR_COLOR 1
+			#endif
 
 		    #define SCENEPICKINGPASS 1
 
@@ -3679,12 +3216,14 @@ Shader "TreeIt"
 			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
 
 			
-            #if ASE_SRP_VERSION >=140010
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
+           
+
+			
+            #if ASE_SRP_VERSION >=140009
 			#include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
 			#endif
 		
-
-			
 
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
 
@@ -3696,8 +3235,8 @@ Shader "TreeIt"
 
 			#include "Packages/com.unity.render-pipelines.universal/Editor/ShaderGraph/Includes/ShaderPass.hlsl"
 
-			#define ASE_NEEDS_VERT_NORMAL
-			#pragma multi_compile_local __ _ENABLE_WIND_ON
+			#define ASE_NEEDS_VERT_POSITION
+			#pragma multi_compile __ _WIND
 
 
 			struct VertexInput
@@ -3718,16 +3257,16 @@ Shader "TreeIt"
 			};
 
 			CBUFFER_START(UnityPerMaterial)
-			float4 _MainTex_ST;
 			float4 _Color;
+			float4 _MainTex_ST;
 			float4 _BumpMap_ST;
 			float4 _Roughness_ST;
 			float4 _Translucency_ST;
-			float _WindScroll;
-			float _NoiseSize;
 			float _WindEdges;
 			float _WindVariation;
 			float _WindStrenght;
+			float _WindScroll;
+			float _NoiseSize;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
 			#endif
@@ -3807,16 +3346,17 @@ Shader "TreeIt"
 				UNITY_TRANSFER_INSTANCE_ID(v, o);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
+				float4 transform143 = mul(GetWorldToObjectMatrix(),_WindDirection);
+				float4 break29 = v.ase_color;
 				float3 ase_worldPos = TransformObjectToWorld( (v.positionOS).xyz );
 				float2 appendResult83 = (float2(ase_worldPos.x , ase_worldPos.z));
 				float2 panner87 = ( ( _WindScroll * _TimeParameters.x ) * float2( 1,1 ) + ( appendResult83 * _NoiseSize ));
 				float simplePerlin2D85 = snoise( panner87 );
 				simplePerlin2D85 = simplePerlin2D85*0.5 + 0.5;
-				float4 break29 = v.ase_color;
-				#ifdef _ENABLE_WIND_ON
-				float4 staticSwitch115 = ( float4( v.normalOS , 0.0 ) * ( simplePerlin2D85 * ( ( _WindEdges * break29.r ) + ( _WindVariation * break29.g ) + ( _WindStrenght * break29.b ) ) ) * _WindDirection * _Wind[clamp(0,0,(4 - 1))] );
+				#ifdef _WIND
+				float4 staticSwitch115 = ( float4( v.positionOS.xyz , 0.0 ) + ( transform143 * ( ( ( _WindEdges * break29.r ) + ( _WindVariation * break29.g ) + ( _WindStrenght * break29.b ) ) * simplePerlin2D85 ) * _Wind[clamp(0,0,(4 - 1))] ) );
 				#else
-				float4 staticSwitch115 = float4( float3(0,0,0) , 0.0 );
+				float4 staticSwitch115 = float4( v.positionOS.xyz , 0.0 );
 				#endif
 				float4 quadScatter100 = staticSwitch115;
 				
@@ -3939,7 +3479,7 @@ Shader "TreeIt"
 				
 
 				surfaceDescription.Alpha = tex2DNode20.a;
-				surfaceDescription.AlphaClipThreshold = 0.0;
+				surfaceDescription.AlphaClipThreshold = 0.5;
 
 				#if _ALPHATEST_ON
 					float alphaClipThreshold = 0.01f;
@@ -4108,7 +3648,11 @@ Shader "TreeIt"
 
 			HLSLPROGRAM
 
+			
+
 			#define _NORMAL_DROPOFF_TS 1
+			#pragma shader_feature_local _RECEIVE_SHADOWS_OFF
+			#pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
 			#pragma multi_compile_instancing
 			#pragma instancing_options renderinglayer
 			#pragma multi_compile _ LOD_FADE_CROSSFADE
@@ -4118,9 +3662,7 @@ Shader "TreeIt"
 			#define ASE_SRP_VERSION 140011
 
 
-			#pragma shader_feature_local _RECEIVE_SHADOWS_OFF
-			#pragma shader_feature_local_fragment _SPECULARHIGHLIGHTS_OFF
-			#pragma shader_feature_local_fragment _ENVIRONMENTREFLECTIONS_OFF
+			
 
 			#pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
 			#pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
@@ -4139,13 +3681,10 @@ Shader "TreeIt"
 			#pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
            
 
-			#pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
 			#pragma multi_compile_fragment _ _DBUFFER_MRT1 _DBUFFER_MRT2 _DBUFFER_MRT3
 			#pragma multi_compile _ _LIGHT_LAYERS
 			#pragma multi_compile_fragment _ _LIGHT_COOKIES
 			#pragma multi_compile _ _FORWARD_PLUS
-		
-			
 
 			
 
@@ -4158,6 +3697,10 @@ Shader "TreeIt"
 
 			#pragma vertex vert
 			#pragma fragment frag
+
+			#if defined(_SPECULAR_SETUP) && defined(_ASE_LIGHTING_SIMPLE)
+				#define _SPECULAR_COLOR 1
+			#endif
 
 			#define SHADERPASS SHADERPASS_FORWARD
 
@@ -4181,12 +3724,14 @@ Shader "TreeIt"
 			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
 
 			
-            #if ASE_SRP_VERSION >=140010
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
+           
+
+			
+            #if ASE_SRP_VERSION >=140009
 			#include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
 			#endif
 		
-
-			
 
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
@@ -4244,6 +3789,7 @@ Shader "TreeIt"
 			};
 
 			CBUFFER_START(UnityPerMaterial)
+			float4 _Color;
 			float4 _MainTex_ST;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
@@ -4489,15 +4035,15 @@ Shader "TreeIt"
 				float4 tex2DNode20 = tex2D( _MainTex, uv_MainTex );
 				
 
-				float3 BaseColor = tex2DNode20.rgb;
+				float3 BaseColor = ( _Color * tex2DNode20 ).rgb;
 				float3 Normal = float3(0, 0, 1);
 				float3 Emission = 0;
 				float3 Specular = 0.5;
 				float Metallic = 0;
 				float Smoothness = 0.5;
 				float Occlusion = 1;
-				float Alpha = 1;
-				float AlphaClipThreshold = 0.0;
+				float Alpha = tex2DNode20.a;
+				float AlphaClipThreshold = 0.5;
 				float AlphaClipThresholdShadow = 0.5;
 				float3 BakedGI = 0;
 				float3 RefractionColor = 1;
@@ -4599,7 +4145,11 @@ Shader "TreeIt"
 					ApplyDecalToSurfaceData(IN.positionCS, surfaceData, inputData);
 				#endif
 
-				half4 color = UniversalFragmentPBR( inputData, surfaceData);
+				#ifdef _ASE_LIGHTING_SIMPLE
+					half4 color = UniversalFragmentBlinnPhong( inputData, surfaceData);
+				#else
+					half4 color = UniversalFragmentPBR( inputData, surfaceData);
+				#endif
 
 				#ifdef ASE_TRANSMISSION
 				{
@@ -4756,6 +4306,10 @@ Shader "TreeIt"
 			#pragma vertex vert
 			#pragma fragment frag
 
+			#if defined(_SPECULAR_SETUP) && defined(_ASE_LIGHTING_SIMPLE)
+				#define _SPECULAR_COLOR 1
+			#endif
+
 			#define SHADERPASS SHADERPASS_DEPTHONLY
 
 			
@@ -4772,12 +4326,14 @@ Shader "TreeIt"
 			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
 
 			
-            #if ASE_SRP_VERSION >=140010
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
+           
+
+			
+            #if ASE_SRP_VERSION >=140009
 			#include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
 			#endif
 		
-
-			
 
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
 			#include "Packages/com.unity.render-pipelines.universal/Editor/ShaderGraph/Includes/ShaderPass.hlsl"
@@ -4800,7 +4356,7 @@ Shader "TreeIt"
 			{
 				float4 positionOS : POSITION;
 				float3 normalOS : NORMAL;
-				
+				float4 ase_texcoord : TEXCOORD0;
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
@@ -4814,12 +4370,13 @@ Shader "TreeIt"
 				#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR) && defined(ASE_NEEDS_FRAG_SHADOWCOORDS)
 				float4 shadowCoord : TEXCOORD2;
 				#endif
-				
+				float4 ase_texcoord3 : TEXCOORD3;
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 				UNITY_VERTEX_OUTPUT_STEREO
 			};
 
 			CBUFFER_START(UnityPerMaterial)
+			float4 _Color;
 			float4 _MainTex_ST;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
@@ -4851,7 +4408,8 @@ Shader "TreeIt"
 				int _PassValue;
 			#endif
 
-			
+			sampler2D _MainTex;
+
 
 			
 			VertexOutput VertexFunction( VertexInput v  )
@@ -4861,7 +4419,10 @@ Shader "TreeIt"
 				UNITY_TRANSFER_INSTANCE_ID(v, o);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
+				o.ase_texcoord3.xy = v.ase_texcoord.xy;
 				
+				//setting value to unused interpolator channels and avoid initialization warnings
+				o.ase_texcoord3.zw = 0;
 
 				#ifdef ASE_ABSOLUTE_VERTEX_POS
 					float3 defaultVertexValue = v.positionOS.xyz;
@@ -4899,7 +4460,8 @@ Shader "TreeIt"
 			{
 				float4 vertex : INTERNALTESSPOS;
 				float3 normalOS : NORMAL;
-				
+				float4 ase_texcoord : TEXCOORD0;
+
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
@@ -4916,7 +4478,7 @@ Shader "TreeIt"
 				UNITY_TRANSFER_INSTANCE_ID(v, o);
 				o.vertex = v.positionOS;
 				o.normalOS = v.normalOS;
-				
+				o.ase_texcoord = v.ase_texcoord;
 				return o;
 			}
 
@@ -4955,7 +4517,7 @@ Shader "TreeIt"
 				VertexInput o = (VertexInput) 0;
 				o.positionOS = patch[0].vertex * bary.x + patch[1].vertex * bary.y + patch[2].vertex * bary.z;
 				o.normalOS = patch[0].normalOS * bary.x + patch[1].normalOS * bary.y + patch[2].normalOS * bary.z;
-				
+				o.ase_texcoord = patch[0].ase_texcoord * bary.x + patch[1].ase_texcoord * bary.y + patch[2].ase_texcoord * bary.z;
 				#if defined(ASE_PHONG_TESSELLATION)
 				float3 pp[3];
 				for (int i = 0; i < 3; ++i)
@@ -4998,10 +4560,12 @@ Shader "TreeIt"
 					#endif
 				#endif
 
+				float2 uv_MainTex = IN.ase_texcoord3.xy * _MainTex_ST.xy + _MainTex_ST.zw;
+				float4 tex2DNode20 = tex2D( _MainTex, uv_MainTex );
 				
 
-				float Alpha = 1;
-				float AlphaClipThreshold = 0.0;
+				float Alpha = tex2DNode20.a;
+				float AlphaClipThreshold = 0.5;
 
 				#ifdef ASE_DEPTH_WRITE_ON
 					float DepthValue = IN.positionCS.z;
@@ -5034,17 +4598,19 @@ Shader "TreeIt"
 			Cull Off
 
 			HLSLPROGRAM
-
 			#define _NORMAL_DROPOFF_TS 1
 			#define ASE_FOG 1
 			#define _ALPHATEST_ON 1
 			#define ASE_SRP_VERSION 140011
 
+			#pragma shader_feature EDITOR_VISUALIZATION
 
 			#pragma vertex vert
 			#pragma fragment frag
 
-			#pragma shader_feature EDITOR_VISUALIZATION
+			#if defined(_SPECULAR_SETUP) && defined(_ASE_LIGHTING_SIMPLE)
+				#define _SPECULAR_COLOR 1
+			#endif
 
 			#define SHADERPASS SHADERPASS_META
 
@@ -5056,12 +4622,14 @@ Shader "TreeIt"
 			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
 
 			
-            #if ASE_SRP_VERSION >=140010
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
+           
+
+			
+            #if ASE_SRP_VERSION >=140009
 			#include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
 			#endif
 		
-
-			
 
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/MetaInput.hlsl"
@@ -5099,6 +4667,7 @@ Shader "TreeIt"
 			};
 
 			CBUFFER_START(UnityPerMaterial)
+			float4 _Color;
 			float4 _MainTex_ST;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
@@ -5299,10 +4868,10 @@ Shader "TreeIt"
 				float4 tex2DNode20 = tex2D( _MainTex, uv_MainTex );
 				
 
-				float3 BaseColor = tex2DNode20.rgb;
+				float3 BaseColor = ( _Color * tex2DNode20 ).rgb;
 				float3 Emission = 0;
-				float Alpha = 1;
-				float AlphaClipThreshold = 0.0;
+				float Alpha = tex2DNode20.a;
+				float AlphaClipThreshold = 0.5;
 
 				#ifdef _ALPHATEST_ON
 					clip(Alpha - AlphaClipThreshold);
@@ -5345,6 +4914,10 @@ Shader "TreeIt"
 			#pragma vertex vert
 			#pragma fragment frag
 
+			#if defined(_SPECULAR_SETUP) && defined(_ASE_LIGHTING_SIMPLE)
+				#define _SPECULAR_COLOR 1
+			#endif
+
 			#define SHADERPASS SHADERPASS_2D
 
 			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
@@ -5355,12 +4928,14 @@ Shader "TreeIt"
 			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
 
 			
-            #if ASE_SRP_VERSION >=140010
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
+           
+
+			
+            #if ASE_SRP_VERSION >=140009
 			#include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
 			#endif
 		
-
-			
 
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
 			#include "Packages/com.unity.render-pipelines.universal/Editor/ShaderGraph/Includes/ShaderPass.hlsl"
@@ -5390,6 +4965,7 @@ Shader "TreeIt"
 			};
 
 			CBUFFER_START(UnityPerMaterial)
+			float4 _Color;
 			float4 _MainTex_ST;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
@@ -5571,9 +5147,9 @@ Shader "TreeIt"
 				float4 tex2DNode20 = tex2D( _MainTex, uv_MainTex );
 				
 
-				float3 BaseColor = tex2DNode20.rgb;
-				float Alpha = 1;
-				float AlphaClipThreshold = 0.0;
+				float3 BaseColor = ( _Color * tex2DNode20 ).rgb;
+				float Alpha = tex2DNode20.a;
+				float AlphaClipThreshold = 0.5;
 
 				half4 color = half4(BaseColor, Alpha );
 
@@ -5600,6 +5176,10 @@ Shader "TreeIt"
 
 			HLSLPROGRAM
 
+			
+
+			
+
 			#define _NORMAL_DROPOFF_TS 1
 			#pragma multi_compile_instancing
 			#pragma multi_compile _ LOD_FADE_CROSSFADE
@@ -5608,12 +5188,16 @@ Shader "TreeIt"
 			#define ASE_SRP_VERSION 140011
 
 
+			
+
+			
+
 			#pragma vertex vert
 			#pragma fragment frag
 
-			
-
-			
+			#if defined(_SPECULAR_SETUP) && defined(_ASE_LIGHTING_SIMPLE)
+				#define _SPECULAR_COLOR 1
+			#endif
 
 			#define SHADERPASS SHADERPASS_DEPTHNORMALSONLY
 			//#define SHADERPASS SHADERPASS_DEPTHNORMALS
@@ -5638,12 +5222,14 @@ Shader "TreeIt"
 			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
 
 			
-            #if ASE_SRP_VERSION >=140010
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
+           
+
+			
+            #if ASE_SRP_VERSION >=140009
 			#include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
 			#endif
 		
-
-			
 
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
 			#include "Packages/com.unity.render-pipelines.universal/Editor/ShaderGraph/Includes/ShaderPass.hlsl"
@@ -5667,7 +5253,7 @@ Shader "TreeIt"
 				float4 positionOS : POSITION;
 				float3 normalOS : NORMAL;
 				float4 tangentOS : TANGENT;
-				
+				float4 ase_texcoord : TEXCOORD0;
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
@@ -5683,12 +5269,13 @@ Shader "TreeIt"
 				#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR) && defined(ASE_NEEDS_FRAG_SHADOWCOORDS)
 					float4 shadowCoord : TEXCOORD4;
 				#endif
-				
+				float4 ase_texcoord5 : TEXCOORD5;
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 				UNITY_VERTEX_OUTPUT_STEREO
 			};
 
 			CBUFFER_START(UnityPerMaterial)
+			float4 _Color;
 			float4 _MainTex_ST;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
@@ -5720,7 +5307,8 @@ Shader "TreeIt"
 				int _PassValue;
 			#endif
 
-			
+			sampler2D _MainTex;
+
 
 			
 			VertexOutput VertexFunction( VertexInput v  )
@@ -5730,7 +5318,10 @@ Shader "TreeIt"
 				UNITY_TRANSFER_INSTANCE_ID(v, o);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
+				o.ase_texcoord5.xy = v.ase_texcoord.xy;
 				
+				//setting value to unused interpolator channels and avoid initialization warnings
+				o.ase_texcoord5.zw = 0;
 				#ifdef ASE_ABSOLUTE_VERTEX_POS
 					float3 defaultVertexValue = v.positionOS.xyz;
 				#else
@@ -5775,7 +5366,8 @@ Shader "TreeIt"
 				float4 vertex : INTERNALTESSPOS;
 				float3 normalOS : NORMAL;
 				float4 tangentOS : TANGENT;
-				
+				float4 ase_texcoord : TEXCOORD0;
+
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
@@ -5793,7 +5385,7 @@ Shader "TreeIt"
 				o.vertex = v.positionOS;
 				o.normalOS = v.normalOS;
 				o.tangentOS = v.tangentOS;
-				
+				o.ase_texcoord = v.ase_texcoord;
 				return o;
 			}
 
@@ -5833,7 +5425,7 @@ Shader "TreeIt"
 				o.positionOS = patch[0].vertex * bary.x + patch[1].vertex * bary.y + patch[2].vertex * bary.z;
 				o.normalOS = patch[0].normalOS * bary.x + patch[1].normalOS * bary.y + patch[2].normalOS * bary.z;
 				o.tangentOS = patch[0].tangentOS * bary.x + patch[1].tangentOS * bary.y + patch[2].tangentOS * bary.z;
-				
+				o.ase_texcoord = patch[0].ase_texcoord * bary.x + patch[1].ase_texcoord * bary.y + patch[2].ase_texcoord * bary.z;
 				#if defined(ASE_PHONG_TESSELLATION)
 				float3 pp[3];
 				for (int i = 0; i < 3; ++i)
@@ -5883,11 +5475,13 @@ Shader "TreeIt"
 					#endif
 				#endif
 
+				float2 uv_MainTex = IN.ase_texcoord5.xy * _MainTex_ST.xy + _MainTex_ST.zw;
+				float4 tex2DNode20 = tex2D( _MainTex, uv_MainTex );
 				
 
 				float3 Normal = float3(0, 0, 1);
-				float Alpha = 1;
-				float AlphaClipThreshold = 0.0;
+				float Alpha = tex2DNode20.a;
+				float AlphaClipThreshold = 0.5;
 
 				#ifdef ASE_DEPTH_WRITE_ON
 					float DepthValue = IN.positionCS.z;
@@ -5951,7 +5545,10 @@ Shader "TreeIt"
 
 			HLSLPROGRAM
 
+			
+
 			#define _NORMAL_DROPOFF_TS 1
+			#pragma shader_feature_local _RECEIVE_SHADOWS_OFF
 			#pragma multi_compile_instancing
 			#pragma instancing_options renderinglayer
 			#pragma multi_compile _ LOD_FADE_CROSSFADE
@@ -5961,9 +5558,7 @@ Shader "TreeIt"
 			#define ASE_SRP_VERSION 140011
 
 
-			#pragma shader_feature_local _RECEIVE_SHADOWS_OFF
-			#pragma shader_feature_local_fragment _SPECULARHIGHLIGHTS_OFF
-			#pragma shader_feature_local_fragment _ENVIRONMENTREFLECTIONS_OFF
+			
 
 			#pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
 			#pragma multi_compile_fragment _ _REFLECTION_PROBE_BLENDING
@@ -5989,10 +5584,12 @@ Shader "TreeIt"
 			#pragma multi_compile _ DYNAMICLIGHTMAP_ON
 			#pragma multi_compile_fragment _ DEBUG_DISPLAY
 
-			
-
 			#pragma vertex vert
 			#pragma fragment frag
+
+			#if defined(_SPECULAR_SETUP) && defined(_ASE_LIGHTING_SIMPLE)
+				#define _SPECULAR_COLOR 1
+			#endif
 
 			#define SHADERPASS SHADERPASS_GBUFFER
 
@@ -6016,12 +5613,14 @@ Shader "TreeIt"
 			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
 
 			
-            #if ASE_SRP_VERSION >=140010
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
+           
+
+			
+            #if ASE_SRP_VERSION >=140009
 			#include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
 			#endif
 		
-
-			
 
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
@@ -6079,6 +5678,7 @@ Shader "TreeIt"
 			};
 
 			CBUFFER_START(UnityPerMaterial)
+			float4 _Color;
 			float4 _MainTex_ST;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
@@ -6319,15 +5919,15 @@ Shader "TreeIt"
 				float4 tex2DNode20 = tex2D( _MainTex, uv_MainTex );
 				
 
-				float3 BaseColor = tex2DNode20.rgb;
+				float3 BaseColor = ( _Color * tex2DNode20 ).rgb;
 				float3 Normal = float3(0, 0, 1);
 				float3 Emission = 0;
 				float3 Specular = 0.5;
 				float Metallic = 0;
 				float Smoothness = 0.5;
 				float Occlusion = 1;
-				float Alpha = 1;
-				float AlphaClipThreshold = 0.0;
+				float Alpha = tex2DNode20.a;
+				float AlphaClipThreshold = 0.5;
 				float AlphaClipThresholdShadow = 0.5;
 				float3 BakedGI = 0;
 				float3 RefractionColor = 1;
@@ -6454,6 +6054,10 @@ Shader "TreeIt"
 			#pragma vertex vert
 			#pragma fragment frag
 
+			#if defined(_SPECULAR_SETUP) && defined(_ASE_LIGHTING_SIMPLE)
+				#define _SPECULAR_COLOR 1
+			#endif
+
 			#define SCENESELECTIONPASS 1
 
 			#define ATTRIBUTES_NEED_NORMAL
@@ -6468,12 +6072,14 @@ Shader "TreeIt"
 			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
 
 			
-            #if ASE_SRP_VERSION >=140010
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
+           
+
+			
+            #if ASE_SRP_VERSION >=140009
 			#include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
 			#endif
 		
-
-			
 
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
 
@@ -6491,19 +6097,20 @@ Shader "TreeIt"
 			{
 				float4 positionOS : POSITION;
 				float3 normalOS : NORMAL;
-				
+				float4 ase_texcoord : TEXCOORD0;
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
 			struct VertexOutput
 			{
 				float4 positionCS : SV_POSITION;
-				
+				float4 ase_texcoord : TEXCOORD0;
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 				UNITY_VERTEX_OUTPUT_STEREO
 			};
 
 			CBUFFER_START(UnityPerMaterial)
+			float4 _Color;
 			float4 _MainTex_ST;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
@@ -6535,7 +6142,8 @@ Shader "TreeIt"
 				int _PassValue;
 			#endif
 
-			
+			sampler2D _MainTex;
+
 
 			
 			struct SurfaceDescription
@@ -6553,7 +6161,10 @@ Shader "TreeIt"
 				UNITY_TRANSFER_INSTANCE_ID(v, o);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
+				o.ase_texcoord.xy = v.ase_texcoord.xy;
 				
+				//setting value to unused interpolator channels and avoid initialization warnings
+				o.ase_texcoord.zw = 0;
 
 				#ifdef ASE_ABSOLUTE_VERTEX_POS
 					float3 defaultVertexValue = v.positionOS.xyz;
@@ -6583,7 +6194,8 @@ Shader "TreeIt"
 			{
 				float4 vertex : INTERNALTESSPOS;
 				float3 normalOS : NORMAL;
-				
+				float4 ase_texcoord : TEXCOORD0;
+
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
@@ -6600,7 +6212,7 @@ Shader "TreeIt"
 				UNITY_TRANSFER_INSTANCE_ID(v, o);
 				o.vertex = v.positionOS;
 				o.normalOS = v.normalOS;
-				
+				o.ase_texcoord = v.ase_texcoord;
 				return o;
 			}
 
@@ -6639,7 +6251,7 @@ Shader "TreeIt"
 				VertexInput o = (VertexInput) 0;
 				o.positionOS = patch[0].vertex * bary.x + patch[1].vertex * bary.y + patch[2].vertex * bary.z;
 				o.normalOS = patch[0].normalOS * bary.x + patch[1].normalOS * bary.y + patch[2].normalOS * bary.z;
-				
+				o.ase_texcoord = patch[0].ase_texcoord * bary.x + patch[1].ase_texcoord * bary.y + patch[2].ase_texcoord * bary.z;
 				#if defined(ASE_PHONG_TESSELLATION)
 				float3 pp[3];
 				for (int i = 0; i < 3; ++i)
@@ -6661,10 +6273,12 @@ Shader "TreeIt"
 			{
 				SurfaceDescription surfaceDescription = (SurfaceDescription)0;
 
+				float2 uv_MainTex = IN.ase_texcoord.xy * _MainTex_ST.xy + _MainTex_ST.zw;
+				float4 tex2DNode20 = tex2D( _MainTex, uv_MainTex );
 				
 
-				surfaceDescription.Alpha = 1;
-				surfaceDescription.AlphaClipThreshold = 0.0;
+				surfaceDescription.Alpha = tex2DNode20.a;
+				surfaceDescription.AlphaClipThreshold = 0.5;
 
 				#if _ALPHATEST_ON
 					float alphaClipThreshold = 0.01f;
@@ -6712,6 +6326,10 @@ Shader "TreeIt"
 			#pragma vertex vert
 			#pragma fragment frag
 
+			#if defined(_SPECULAR_SETUP) && defined(_ASE_LIGHTING_SIMPLE)
+				#define _SPECULAR_COLOR 1
+			#endif
+
 		    #define SCENEPICKINGPASS 1
 
 			#define ATTRIBUTES_NEED_NORMAL
@@ -6726,12 +6344,14 @@ Shader "TreeIt"
 			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
 
 			
-            #if ASE_SRP_VERSION >=140010
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
+           
+
+			
+            #if ASE_SRP_VERSION >=140009
 			#include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
 			#endif
 		
-
-			
 
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
 
@@ -6749,19 +6369,20 @@ Shader "TreeIt"
 			{
 				float4 positionOS : POSITION;
 				float3 normalOS : NORMAL;
-				
+				float4 ase_texcoord : TEXCOORD0;
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
 			struct VertexOutput
 			{
 				float4 positionCS : SV_POSITION;
-				
+				float4 ase_texcoord : TEXCOORD0;
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 				UNITY_VERTEX_OUTPUT_STEREO
 			};
 
 			CBUFFER_START(UnityPerMaterial)
+			float4 _Color;
 			float4 _MainTex_ST;
 			#ifdef ASE_TRANSMISSION
 				float _TransmissionShadow;
@@ -6793,7 +6414,8 @@ Shader "TreeIt"
 				int _PassValue;
 			#endif
 
-			
+			sampler2D _MainTex;
+
 
 			
 			struct SurfaceDescription
@@ -6811,7 +6433,10 @@ Shader "TreeIt"
 				UNITY_TRANSFER_INSTANCE_ID(v, o);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
+				o.ase_texcoord.xy = v.ase_texcoord.xy;
 				
+				//setting value to unused interpolator channels and avoid initialization warnings
+				o.ase_texcoord.zw = 0;
 
 				#ifdef ASE_ABSOLUTE_VERTEX_POS
 					float3 defaultVertexValue = v.positionOS.xyz;
@@ -6840,7 +6465,8 @@ Shader "TreeIt"
 			{
 				float4 vertex : INTERNALTESSPOS;
 				float3 normalOS : NORMAL;
-				
+				float4 ase_texcoord : TEXCOORD0;
+
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
@@ -6857,7 +6483,7 @@ Shader "TreeIt"
 				UNITY_TRANSFER_INSTANCE_ID(v, o);
 				o.vertex = v.positionOS;
 				o.normalOS = v.normalOS;
-				
+				o.ase_texcoord = v.ase_texcoord;
 				return o;
 			}
 
@@ -6896,7 +6522,7 @@ Shader "TreeIt"
 				VertexInput o = (VertexInput) 0;
 				o.positionOS = patch[0].vertex * bary.x + patch[1].vertex * bary.y + patch[2].vertex * bary.z;
 				o.normalOS = patch[0].normalOS * bary.x + patch[1].normalOS * bary.y + patch[2].normalOS * bary.z;
-				
+				o.ase_texcoord = patch[0].ase_texcoord * bary.x + patch[1].ase_texcoord * bary.y + patch[2].ase_texcoord * bary.z;
 				#if defined(ASE_PHONG_TESSELLATION)
 				float3 pp[3];
 				for (int i = 0; i < 3; ++i)
@@ -6918,10 +6544,12 @@ Shader "TreeIt"
 			{
 				SurfaceDescription surfaceDescription = (SurfaceDescription)0;
 
+				float2 uv_MainTex = IN.ase_texcoord.xy * _MainTex_ST.xy + _MainTex_ST.zw;
+				float4 tex2DNode20 = tex2D( _MainTex, uv_MainTex );
 				
 
-				surfaceDescription.Alpha = 1;
-				surfaceDescription.AlphaClipThreshold = 0.0;
+				surfaceDescription.Alpha = tex2DNode20.a;
+				surfaceDescription.AlphaClipThreshold = 0.5;
 
 				#if _ALPHATEST_ON
 					float alphaClipThreshold = 0.01f;
@@ -6954,52 +6582,51 @@ Shader "TreeIt"
 	Fallback Off
 }
 /*ASEBEGIN
-Version=19302
-Node;AmplifyShaderEditor.WorldPosInputsNode;82;-1920,2432;Inherit;False;0;4;FLOAT3;0;FLOAT;1;FLOAT;2;FLOAT;3
-Node;AmplifyShaderEditor.DynamicAppendNode;83;-1664,2432;Inherit;False;FLOAT2;4;0;FLOAT;0;False;1;FLOAT;0;False;2;FLOAT;0;False;3;FLOAT;0;False;1;FLOAT2;0
-Node;AmplifyShaderEditor.RangedFloatNode;84;-1920,2624;Inherit;False;Property;_NoiseSize;Noise Size;5;0;Create;True;0;0;0;False;0;False;1;4.891304;0;10;0;1;FLOAT;0
-Node;AmplifyShaderEditor.SimpleTimeNode;88;-1536,2688;Inherit;False;1;0;FLOAT;1;False;1;FLOAT;0
-Node;AmplifyShaderEditor.RangedFloatNode;89;-1536,2592;Inherit;False;Property;_WindScroll;WindScroll;6;0;Create;True;0;0;0;False;0;False;0.3;1;0;0;0;1;FLOAT;0
-Node;AmplifyShaderEditor.VertexColorNode;22;-1952,2144;Inherit;False;0;5;COLOR;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
-Node;AmplifyShaderEditor.SimpleMultiplyOpNode;86;-1472,2432;Inherit;False;2;2;0;FLOAT2;0,0;False;1;FLOAT;0;False;1;FLOAT2;0
-Node;AmplifyShaderEditor.SimpleMultiplyOpNode;90;-1344,2592;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
-Node;AmplifyShaderEditor.RangedFloatNode;104;-1920,1952;Inherit;False;Property;_WindVariation;WindVariation;8;0;Create;True;0;0;0;False;0;False;0.2;0.079;0;1;0;1;FLOAT;0
-Node;AmplifyShaderEditor.RangedFloatNode;105;-1920,2048;Inherit;False;Property;_WindStrenght;WindStrenght;9;0;Create;True;0;0;0;False;0;False;0.2;0.194;0;1;0;1;FLOAT;0
-Node;AmplifyShaderEditor.BreakToComponentsNode;29;-1760,2144;Inherit;False;COLOR;1;0;COLOR;0,0,0,0;False;16;FLOAT;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4;FLOAT;5;FLOAT;6;FLOAT;7;FLOAT;8;FLOAT;9;FLOAT;10;FLOAT;11;FLOAT;12;FLOAT;13;FLOAT;14;FLOAT;15
-Node;AmplifyShaderEditor.RangedFloatNode;103;-1920,1856;Inherit;False;Property;_WindEdges;WindEdges;7;0;Create;True;0;0;0;False;0;False;0.2;0.096;0;1;0;1;FLOAT;0
-Node;AmplifyShaderEditor.PannerNode;87;-1280,2432;Inherit;False;3;0;FLOAT2;0,0;False;2;FLOAT2;1,1;False;1;FLOAT;1;False;1;FLOAT2;0
-Node;AmplifyShaderEditor.SimpleMultiplyOpNode;109;-1584,1856;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
-Node;AmplifyShaderEditor.SimpleMultiplyOpNode;108;-1584,1952;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
-Node;AmplifyShaderEditor.SimpleMultiplyOpNode;106;-1584,2048;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
-Node;AmplifyShaderEditor.NoiseGeneratorNode;85;-1024,2432;Inherit;True;Simplex2D;True;False;2;0;FLOAT2;0,0;False;1;FLOAT;1;False;1;FLOAT;0
-Node;AmplifyShaderEditor.SimpleAddOpNode;112;-1280,2048;Inherit;False;3;3;0;FLOAT;0;False;1;FLOAT;0;False;2;FLOAT;0;False;1;FLOAT;0
-Node;AmplifyShaderEditor.NormalVertexDataNode;93;-640,2048;Inherit;False;0;5;FLOAT3;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
-Node;AmplifyShaderEditor.SimpleMultiplyOpNode;102;-822.4291,2188.031;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
-Node;AmplifyShaderEditor.Vector4Node;124;-640,2385;Float;False;Global;_WindDirection;_WindDirection;0;0;Create;True;0;0;0;True;0;False;0,0,0,1;0.1801157,-0.04478838,0.9826252,0;0;5;FLOAT4;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
-Node;AmplifyShaderEditor.GlobalArrayNode;129;-640,2592;Inherit;False;_Wind;0;4;0;True;False;0;1;False;Object;-1;4;0;INT;0;False;2;INT;0;False;1;INT;0;False;3;INT;0;False;1;FLOAT;0
-Node;AmplifyShaderEditor.SimpleMultiplyOpNode;94;-384,2048;Inherit;False;4;4;0;FLOAT3;0,0,0;False;1;FLOAT;0;False;2;FLOAT4;0,0,0,0;False;3;FLOAT;0;False;1;FLOAT4;0
-Node;AmplifyShaderEditor.Vector3Node;117;-128,1920;Inherit;False;Constant;_Vector0;Vector 0;12;0;Create;True;0;0;0;False;0;False;0,0,0;0,0,0;0;4;FLOAT3;0;FLOAT;1;FLOAT;2;FLOAT;3
-Node;AmplifyShaderEditor.StaticSwitch;115;128,2048;Inherit;False;Property;_ENABLE_WIND;ENABLE_WIND;10;0;Create;True;0;0;0;False;0;False;1;0;1;True;;Toggle;2;Key0;Key1;Create;True;True;All;9;1;FLOAT4;0,0,0,0;False;0;FLOAT4;0,0,0,0;False;2;FLOAT4;0,0,0,0;False;3;FLOAT4;0,0,0,0;False;4;FLOAT4;0,0,0,0;False;5;FLOAT4;0,0,0,0;False;6;FLOAT4;0,0,0,0;False;7;FLOAT4;0,0,0,0;False;8;FLOAT4;0,0,0,0;False;1;FLOAT4;0
-Node;AmplifyShaderEditor.TexturePropertyNode;21;-1728,-192;Inherit;True;Property;_MainTex;MainTex;1;0;Create;True;0;0;0;False;0;False;17ddd019ae0784941b066d65c71a677d;17ddd019ae0784941b066d65c71a677d;False;white;Auto;Texture2D;-1;0;2;SAMPLER2D;0;SAMPLERSTATE;1
-Node;AmplifyShaderEditor.RegisterLocalVarNode;100;384,2048;Inherit;False;quadScatter;-1;True;1;0;FLOAT4;0,0,0,0;False;1;FLOAT4;0
-Node;AmplifyShaderEditor.TexturePropertyNode;76;-1728,512;Inherit;True;Property;_Translucency;Translucency;4;0;Create;True;0;0;0;False;0;False;f8c08a5cb26b842429cea4a83204dd46;None;False;white;Auto;Texture2D;-1;0;2;SAMPLER2D;0;SAMPLERSTATE;1
-Node;AmplifyShaderEditor.ColorNode;10;-1408,-368;Inherit;False;Property;_Color;Color;0;0;Create;True;0;0;0;True;0;False;1,1,1,1;1,1,1,1;True;0;5;COLOR;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
-Node;AmplifyShaderEditor.RangedFloatNode;11;-1664,-768;Inherit;False;Constant;_Cutoff;Cutoff;1;0;Create;True;0;0;0;False;0;False;0;0;0;0;0;1;FLOAT;0
-Node;AmplifyShaderEditor.RangedFloatNode;12;-1664,-672;Inherit;False;Constant;_WindQuality;WindQuality;1;0;Create;True;0;0;0;False;0;False;0;0;0;0;0;1;FLOAT;0
-Node;AmplifyShaderEditor.ColorNode;15;-1408,-544;Inherit;False;Constant;_HueVariation;HueVariation;1;0;Create;True;0;0;0;False;0;False;1,1,1,1;0,0,0,0;True;0;5;COLOR;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
-Node;AmplifyShaderEditor.SimpleMultiplyOpNode;31;-864,-304;Inherit;True;3;3;0;COLOR;0,0,0,0;False;1;COLOR;0,0,0,0;False;2;COLOR;0,0,0,0;False;1;COLOR;0
-Node;AmplifyShaderEditor.RangedFloatNode;34;-512,608;Inherit;False;Constant;_AlphaClipThreshold;Alpha Clip Threshold;4;0;Create;True;0;0;0;False;0;False;0;0;0;1;0;1;FLOAT;0
-Node;AmplifyShaderEditor.SamplerNode;30;-1404.557,62.85235;Inherit;True;Property;_TextureSample1;Texture Sample 1;4;0;Create;True;0;0;0;False;0;False;-1;None;None;True;0;False;white;Auto;True;Object;-1;Auto;Texture2D;8;0;SAMPLER2D;;False;1;FLOAT2;0,0;False;2;FLOAT;0;False;3;FLOAT2;0,0;False;4;FLOAT2;0,0;False;5;FLOAT;1;False;6;FLOAT;0;False;7;SAMPLERSTATE;;False;5;FLOAT3;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
-Node;AmplifyShaderEditor.TexturePropertyNode;23;-1728,64;Inherit;True;Property;_BumpMap;BumpMap;2;0;Create;True;0;0;0;False;0;False;06e6ee798f7f48446bef9f9b5a0e0bb6;e6e8c92aa521d6649a55ec66d9f81d32;True;bump;Auto;Texture2D;-1;0;2;SAMPLER2D;0;SAMPLERSTATE;1
-Node;AmplifyShaderEditor.OneMinusNode;75;-512,512;Inherit;False;1;0;FLOAT;0;False;1;FLOAT;0
-Node;AmplifyShaderEditor.RangedFloatNode;71;-512,416;Inherit;False;Constant;_Metallic;Metallic;4;0;Create;True;0;0;0;False;0;False;0;0;0;1;0;1;FLOAT;0
-Node;AmplifyShaderEditor.TexturePropertyNode;74;-1730.554,289.2769;Inherit;True;Property;_Roughness;Roughness;3;0;Create;True;0;0;0;False;0;False;1871b67b2ceb3a04eb50d4a5535f62a1;None;False;white;Auto;Texture2D;-1;0;2;SAMPLER2D;0;SAMPLERSTATE;1
-Node;AmplifyShaderEditor.SamplerNode;73;-1408,288;Inherit;True;Property;_TextureSample2;Texture Sample 1;4;0;Create;True;0;0;0;False;0;False;-1;None;None;True;0;False;white;Auto;False;Object;-1;Auto;Texture2D;8;0;SAMPLER2D;;False;1;FLOAT2;0,0;False;2;FLOAT;0;False;3;FLOAT2;0,0;False;4;FLOAT2;0,0;False;5;FLOAT;1;False;6;FLOAT;0;False;7;SAMPLERSTATE;;False;5;COLOR;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
-Node;AmplifyShaderEditor.SamplerNode;77;-1408,512;Inherit;True;Property;_TextureSample3;Texture Sample 1;4;0;Create;True;0;0;0;False;0;False;-1;None;None;True;0;False;white;Auto;False;Object;-1;Auto;Texture2D;8;0;SAMPLER2D;;False;1;FLOAT2;0,0;False;2;FLOAT;0;False;3;FLOAT2;0,0;False;4;FLOAT2;0,0;False;5;FLOAT;1;False;6;FLOAT;0;False;7;SAMPLERSTATE;;False;5;COLOR;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
-Node;AmplifyShaderEditor.SamplerNode;20;-1408,-192;Inherit;True;Property;_TextureSample0;Texture Sample 0;2;0;Create;True;0;0;0;False;0;False;-1;None;None;True;0;False;white;Auto;False;Object;-1;Auto;Texture2D;8;0;SAMPLER2D;;False;1;FLOAT2;0,0;False;2;FLOAT;0;False;3;FLOAT2;0,0;False;4;FLOAT2;0,0;False;5;FLOAT;1;False;6;FLOAT;0;False;7;SAMPLERSTATE;;False;5;COLOR;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
-Node;AmplifyShaderEditor.LinearToGammaNode;79;-560,-320;Inherit;False;0;1;0;FLOAT3;0,0,0;False;1;FLOAT3;0
-Node;AmplifyShaderEditor.GammaToLinearNode;78;-560,-400;Inherit;False;0;1;0;FLOAT3;0,0,0;False;1;FLOAT3;0
-Node;AmplifyShaderEditor.GetLocalVarNode;101;-715.9315,223.1634;Inherit;False;100;quadScatter;1;0;OBJECT;;False;1;FLOAT4;0
+Version=19501
+Node;AmplifyShaderEditor.WorldPosInputsNode;82;-2432,2304;Inherit;False;0;4;FLOAT3;0;FLOAT;1;FLOAT;2;FLOAT;3
+Node;AmplifyShaderEditor.RangedFloatNode;84;-2432,2496;Inherit;False;Property;_NoiseSize;Noise Size;5;0;Create;True;0;0;0;False;0;False;1;1;0;10;0;1;FLOAT;0
+Node;AmplifyShaderEditor.SimpleTimeNode;88;-2048,2560;Inherit;False;1;0;FLOAT;1;False;1;FLOAT;0
+Node;AmplifyShaderEditor.VertexColorNode;22;-2304,1952;Inherit;False;0;5;COLOR;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
+Node;AmplifyShaderEditor.RangedFloatNode;89;-2048,2464;Inherit;False;Property;_WindScroll;WindScroll;6;0;Create;True;0;0;0;False;0;False;0.3;0.3;0;0;0;1;FLOAT;0
+Node;AmplifyShaderEditor.DynamicAppendNode;83;-2176,2304;Inherit;False;FLOAT2;4;0;FLOAT;0;False;1;FLOAT;0;False;2;FLOAT;0;False;3;FLOAT;0;False;1;FLOAT2;0
+Node;AmplifyShaderEditor.RangedFloatNode;103;-2176,1664;Inherit;False;Property;_WindEdges;WindEdges;7;0;Create;True;0;0;0;False;0;False;0.2;0.2;0;1;0;1;FLOAT;0
+Node;AmplifyShaderEditor.RangedFloatNode;104;-2176,1760;Inherit;False;Property;_WindVariation;WindVariation;8;0;Create;True;0;0;0;False;0;False;0.2;0.2;0;1;0;1;FLOAT;0
+Node;AmplifyShaderEditor.RangedFloatNode;105;-2176,1856;Inherit;False;Property;_WindStrenght;WindStrenght;9;0;Create;True;0;0;0;False;0;False;0.2;0.2;0;1;0;1;FLOAT;0
+Node;AmplifyShaderEditor.BreakToComponentsNode;29;-2016,1952;Inherit;False;COLOR;1;0;COLOR;0,0,0,0;False;16;FLOAT;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4;FLOAT;5;FLOAT;6;FLOAT;7;FLOAT;8;FLOAT;9;FLOAT;10;FLOAT;11;FLOAT;12;FLOAT;13;FLOAT;14;FLOAT;15
+Node;AmplifyShaderEditor.SimpleMultiplyOpNode;86;-1984,2304;Inherit;False;2;2;0;FLOAT2;0,0;False;1;FLOAT;0;False;1;FLOAT2;0
+Node;AmplifyShaderEditor.SimpleMultiplyOpNode;90;-1856,2464;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
+Node;AmplifyShaderEditor.SimpleMultiplyOpNode;109;-1792,1664;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
+Node;AmplifyShaderEditor.SimpleMultiplyOpNode;106;-1792,1920;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
+Node;AmplifyShaderEditor.SimpleMultiplyOpNode;108;-1792,1792;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
+Node;AmplifyShaderEditor.PannerNode;87;-1792,2304;Inherit;False;3;0;FLOAT2;0,0;False;2;FLOAT2;1,1;False;1;FLOAT;1;False;1;FLOAT2;0
+Node;AmplifyShaderEditor.SimpleAddOpNode;112;-1536,1920;Inherit;False;3;3;0;FLOAT;0;False;1;FLOAT;0;False;2;FLOAT;0;False;1;FLOAT;0
+Node;AmplifyShaderEditor.NoiseGeneratorNode;85;-1536,2304;Inherit;True;Simplex2D;True;False;2;0;FLOAT2;0,0;False;1;FLOAT;1;False;1;FLOAT;0
+Node;AmplifyShaderEditor.Vector4Node;124;-1024,1664;Float;False;Global;_WindDirection;_WindDirection;0;0;Create;True;0;0;0;True;0;False;0,0,0,1;-0.4774719,0,0.878647,0;0;5;FLOAT4;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
+Node;AmplifyShaderEditor.WorldToObjectTransfNode;143;-768,1664;Inherit;False;1;0;FLOAT4;0,0,0,1;False;5;FLOAT4;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
+Node;AmplifyShaderEditor.SimpleMultiplyOpNode;102;-768,1920;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
+Node;AmplifyShaderEditor.GlobalArrayNode;129;-768,2048;Inherit;False;_Wind;0;4;0;True;False;0;1;False;Object;-1;4;0;INT;0;False;2;INT;0;False;1;INT;0;False;3;INT;0;False;1;FLOAT;0
+Node;AmplifyShaderEditor.PosVertexDataNode;146;-256,1664;Inherit;False;0;0;5;FLOAT3;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
+Node;AmplifyShaderEditor.SimpleMultiplyOpNode;138;-384,1920;Inherit;False;3;3;0;FLOAT4;0,0,0,0;False;1;FLOAT;0;False;2;FLOAT;0;False;1;FLOAT4;0
+Node;AmplifyShaderEditor.SimpleAddOpNode;148;-16,1744;Inherit;False;2;2;0;FLOAT3;0,0,0;False;1;FLOAT4;0,0,0,0;False;1;FLOAT4;0
+Node;AmplifyShaderEditor.TexturePropertyNode;21;-1792,-256;Inherit;True;Property;_MainTex;MainTex;1;0;Create;True;0;0;0;False;0;False;None;c5ef93399ddf71c419bab7e6689e7a03;False;white;Auto;Texture2D;-1;0;2;SAMPLER2D;0;SAMPLERSTATE;1
+Node;AmplifyShaderEditor.StaticSwitch;115;128,1664;Inherit;False;Property;_WIND;WIND;10;0;Create;True;0;0;0;True;0;False;1;0;0;False;;Toggle;2;Key0;Key1;Create;False;True;All;9;1;FLOAT4;0,0,0,0;False;0;FLOAT4;0,0,0,0;False;2;FLOAT4;0,0,0,0;False;3;FLOAT4;0,0,0,0;False;4;FLOAT4;0,0,0,0;False;5;FLOAT4;0,0,0,0;False;6;FLOAT4;0,0,0,0;False;7;FLOAT4;0,0,0,0;False;8;FLOAT4;0,0,0,0;False;1;FLOAT4;0
+Node;AmplifyShaderEditor.RegisterLocalVarNode;100;512,1792;Inherit;False;quadScatter;-1;True;1;0;FLOAT4;0,0,0,0;False;1;FLOAT4;0
+Node;AmplifyShaderEditor.SamplerNode;20;-1536,-256;Inherit;True;Property;_TextureSample0;Texture Sample 0;2;0;Create;True;0;0;0;False;0;False;-1;None;None;True;0;False;white;Auto;False;Object;-1;Auto;Texture2D;8;0;SAMPLER2D;;False;1;FLOAT2;0,0;False;2;FLOAT;0;False;3;FLOAT2;0,0;False;4;FLOAT2;0,0;False;5;FLOAT;1;False;6;FLOAT;0;False;7;SAMPLERSTATE;;False;6;COLOR;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4;FLOAT3;5
+Node;AmplifyShaderEditor.TexturePropertyNode;74;-1792,256;Inherit;True;Property;_Roughness;Roughness;3;0;Create;True;0;0;0;False;0;False;None;None;False;white;Auto;Texture2D;-1;0;2;SAMPLER2D;0;SAMPLERSTATE;1
+Node;AmplifyShaderEditor.TexturePropertyNode;76;-1792,512;Inherit;True;Property;_Translucency;Translucency;4;0;Create;True;0;0;0;False;0;False;None;None;False;white;Auto;Texture2D;-1;0;2;SAMPLER2D;0;SAMPLERSTATE;1
+Node;AmplifyShaderEditor.SamplerNode;77;-1536,512;Inherit;True;Property;_TextureSample3;Texture Sample 1;4;0;Create;True;0;0;0;False;0;False;-1;None;None;True;0;False;white;Auto;False;Object;-1;Auto;Texture2D;8;0;SAMPLER2D;;False;1;FLOAT2;0,0;False;2;FLOAT;0;False;3;FLOAT2;0,0;False;4;FLOAT2;0,0;False;5;FLOAT;1;False;6;FLOAT;0;False;7;SAMPLERSTATE;;False;6;COLOR;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4;FLOAT3;5
+Node;AmplifyShaderEditor.SamplerNode;73;-1536,256;Inherit;True;Property;_TextureSample2;Texture Sample 1;4;0;Create;True;0;0;0;False;0;False;-1;None;None;True;0;False;white;Auto;False;Object;-1;Auto;Texture2D;8;0;SAMPLER2D;;False;1;FLOAT2;0,0;False;2;FLOAT;0;False;3;FLOAT2;0,0;False;4;FLOAT2;0,0;False;5;FLOAT;1;False;6;FLOAT;0;False;7;SAMPLERSTATE;;False;6;COLOR;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4;FLOAT3;5
+Node;AmplifyShaderEditor.SamplerNode;30;-1536,0;Inherit;True;Property;_TextureSample1;Texture Sample 1;4;0;Create;True;0;0;0;False;0;False;-1;None;None;True;0;False;white;Auto;True;Object;-1;Auto;Texture2D;8;0;SAMPLER2D;;False;1;FLOAT2;0,0;False;2;FLOAT;0;False;3;FLOAT2;0,0;False;4;FLOAT2;0,0;False;5;FLOAT;1;False;6;FLOAT;0;False;7;SAMPLERSTATE;;False;6;FLOAT3;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4;FLOAT3;5
+Node;AmplifyShaderEditor.ColorNode;10;-1536,-512;Inherit;False;Property;_Color;Color;0;0;Create;True;0;0;0;True;0;False;1,1,1,1;1,1,1,1;True;True;0;6;COLOR;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4;FLOAT3;5
+Node;AmplifyShaderEditor.SimpleMultiplyOpNode;31;-1024,-256;Inherit;True;2;2;0;COLOR;0,0,0,0;False;1;COLOR;0,0,0,0;False;1;COLOR;0
+Node;AmplifyShaderEditor.TexturePropertyNode;23;-1792,0;Inherit;True;Property;_BumpMap;Normal Map;2;1;[Normal];Create;False;0;0;0;False;0;False;None;None;True;bump;Auto;Texture2D;-1;0;2;SAMPLER2D;0;SAMPLERSTATE;1
+Node;AmplifyShaderEditor.RangedFloatNode;71;-896,128;Inherit;False;Constant;_Metallic;Metallic;4;0;Create;True;0;0;0;False;0;False;0;0;0;1;0;1;FLOAT;0
+Node;AmplifyShaderEditor.GetLocalVarNode;101;-896,640;Inherit;False;100;quadScatter;1;0;OBJECT;;False;1;FLOAT4;0
+Node;AmplifyShaderEditor.RangedFloatNode;34;-896,384;Inherit;False;Constant;_AlphaClipThreshold;Alpha Clip Threshold;4;0;Create;True;0;0;0;False;0;False;0.5;0;0;1;0;1;FLOAT;0
+Node;AmplifyShaderEditor.WireNode;150;-656,496;Inherit;False;1;0;COLOR;0,0,0,0;False;1;COLOR;0
+Node;AmplifyShaderEditor.WireNode;151;-656,320;Inherit;False;1;0;FLOAT;0;False;1;FLOAT;0
+Node;AmplifyShaderEditor.WireNode;152;-399.8022,-81.45258;Inherit;False;1;0;COLOR;0,0,0,0;False;1;COLOR;0
+Node;AmplifyShaderEditor.OneMinusNode;75;-640,224;Inherit;False;1;0;FLOAT;0;False;1;FLOAT;0
 Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;0;0,0;Float;False;False;-1;2;UnityEditor.ShaderGraphLitGUI;0;12;New Amplify Shader;94348b07e5e8bab40bd6c8a1e3df54cd;True;ExtraPrePass;0;0;ExtraPrePass;5;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;0;False;;False;False;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;1;False;;True;3;False;;True;True;0;False;;0;False;;True;4;RenderPipeline=UniversalPipeline;RenderType=Opaque=RenderType;Queue=Geometry=Queue=0;UniversalMaterialType=Lit;True;5;True;12;all;0;False;True;1;1;False;;0;False;;0;1;False;;0;False;;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;True;True;True;True;0;False;;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;1;False;;True;3;False;;True;True;0;False;;0;False;;True;0;False;False;0;;0;0;Standard;0;False;0
 Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;2;0,0;Float;False;False;-1;2;UnityEditor.ShaderGraphLitGUI;0;12;New Amplify Shader;94348b07e5e8bab40bd6c8a1e3df54cd;True;ShadowCaster;0;2;ShadowCaster;0;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;0;False;;False;False;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;1;False;;True;3;False;;True;True;0;False;;0;False;;True;4;RenderPipeline=UniversalPipeline;RenderType=Opaque=RenderType;Queue=Geometry=Queue=0;UniversalMaterialType=Lit;True;5;True;12;all;0;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;False;False;True;False;False;False;False;0;False;;False;False;False;False;False;False;False;False;False;True;1;False;;True;3;False;;False;True;1;LightMode=ShadowCaster;False;False;0;;0;0;Standard;0;False;0
 Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;3;0,0;Float;False;False;-1;2;UnityEditor.ShaderGraphLitGUI;0;12;New Amplify Shader;94348b07e5e8bab40bd6c8a1e3df54cd;True;DepthOnly;0;3;DepthOnly;0;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;0;False;;False;False;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;1;False;;True;3;False;;True;True;0;False;;0;False;;True;4;RenderPipeline=UniversalPipeline;RenderType=Opaque=RenderType;Queue=Geometry=Queue=0;UniversalMaterialType=Lit;True;5;True;12;all;0;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;False;False;True;True;False;False;False;0;False;;False;False;False;False;False;False;False;False;False;True;1;False;;False;False;True;1;LightMode=DepthOnly;False;False;0;;0;0;Standard;0;False;0
@@ -7018,59 +6645,62 @@ Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;67;0,346;Float;False;False;
 Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;68;0,346;Float;False;False;0;2;UnityEditor.ShaderGraphLitGUI;0;12;New Amplify Shader;94348b07e5e8bab40bd6c8a1e3df54cd;True;GBuffer;0;7;GBuffer;0;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;0;False;;False;False;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;1;False;;True;3;False;;True;True;0;False;;0;False;;True;4;RenderPipeline=UniversalPipeline;RenderType=Opaque=RenderType;Queue=Geometry=Queue=0;UniversalMaterialType=Lit;True;5;True;12;all;0;False;True;1;1;False;;0;False;;1;1;False;;0;False;;False;False;False;False;False;False;False;False;False;False;False;False;False;False;True;True;True;True;True;0;False;;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;1;False;;True;3;False;;True;True;0;False;;0;False;;True;1;LightMode=UniversalGBuffer;False;False;0;;0;0;Standard;0;False;0
 Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;69;0,346;Float;False;False;0;2;UnityEditor.ShaderGraphLitGUI;0;12;New Amplify Shader;94348b07e5e8bab40bd6c8a1e3df54cd;True;SceneSelectionPass;0;8;SceneSelectionPass;0;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;0;False;;False;False;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;1;False;;True;3;False;;True;True;0;False;;0;False;;True;4;RenderPipeline=UniversalPipeline;RenderType=Opaque=RenderType;Queue=Geometry=Queue=0;UniversalMaterialType=Lit;True;5;True;12;all;0;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;2;False;;False;False;False;False;False;False;False;False;False;False;False;False;False;False;True;1;LightMode=SceneSelectionPass;False;False;0;;0;0;Standard;0;False;0
 Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;70;0,346;Float;False;False;0;2;UnityEditor.ShaderGraphLitGUI;0;12;New Amplify Shader;94348b07e5e8bab40bd6c8a1e3df54cd;True;ScenePickingPass;0;9;ScenePickingPass;0;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;0;False;;False;False;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;1;False;;True;3;False;;True;True;0;False;;0;False;;True;4;RenderPipeline=UniversalPipeline;RenderType=Opaque=RenderType;Queue=Geometry=Queue=0;UniversalMaterialType=Lit;True;5;True;12;all;0;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;True;1;LightMode=Picking;False;False;0;;0;0;Standard;0;False;0
-Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;62;0,346;Float;False;True;0;2;UnityEditor.ShaderGraphLitGUI;1;12;TreeIt;94348b07e5e8bab40bd6c8a1e3df54cd;True;Forward;0;1;Forward;21;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;0;False;;False;False;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;1;False;;True;3;False;;True;True;0;False;;0;False;;True;4;RenderPipeline=UniversalPipeline;RenderType=Opaque=RenderType;Queue=Geometry=Queue=0;UniversalMaterialType=Lit;True;5;True;12;all;0;False;True;1;1;False;;0;False;;1;1;False;;0;False;;False;False;False;False;False;False;False;False;False;False;False;False;False;True;True;True;True;True;True;0;False;;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;1;False;;True;3;False;;True;True;0;False;;0;False;;True;1;LightMode=UniversalForwardOnly;False;False;0;;0;0;Standard;39;Workflow;1;0;Surface;0;638580533312819900;  Refraction Model;0;0;  Blend;0;0;Two Sided;1;0;Fragment Normal Space,InvertActionOnDeselection;0;0;Forward Only;1;0;Transmission;0;0;  Transmission Shadow;0.5,False,;0;Translucency;0;0;  Translucency Strength;1,False,;0;  Normal Distortion;0.5,False,;0;  Scattering;2,False,;0;  Direct;0.9,False,;0;  Ambient;0.1,False,;0;  Shadow;0.5,False,;0;Cast Shadows;0;638580534107943026;  Use Shadow Threshold;0;0;GPU Instancing;1;0;LOD CrossFade;1;0;Built-in Fog;1;0;_FinalColorxAlpha;0;0;Meta Pass;1;0;Override Baked GI;0;0;Extra Pre Pass;0;0;Tessellation;0;0;  Phong;0;0;  Strength;0.5,False,;0;  Type;0;0;  Tess;16,False,;0;  Min;10,False,;0;  Max;25,False,;0;  Edge Length;16,False,;0;  Max Displacement;25,False,;0;Write Depth;0;0;  Early Z;0;0;Vertex Position,InvertActionOnDeselection;1;0;Debug Display;0;638580589122387870;Clear Coat;0;638580545071233283;0;10;False;True;False;True;True;True;True;True;True;True;False;LOD1;False;0
-Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;1;0,0;Float;False;True;-1;2;UnityEditor.ShaderGraphLitGUI;0;12;TreeIt;94348b07e5e8bab40bd6c8a1e3df54cd;True;Forward;0;1;Forward;21;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;2;False;;False;False;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;2;False;;True;3;False;;True;True;0;False;;0;False;;True;4;RenderPipeline=UniversalPipeline;RenderType=Transparent=RenderType;Queue=Transparent=Queue=0;UniversalMaterialType=Lit;True;5;True;12;all;0;False;True;1;5;False;;10;False;;1;1;False;;10;False;;False;False;False;False;False;False;False;False;False;False;False;False;False;True;True;True;True;True;True;0;False;;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;1;False;;True;3;False;;True;True;0;False;;0;False;;True;1;LightMode=UniversalForwardOnly;False;False;0;;0;0;Standard;39;Workflow;1;0;Surface;1;638580503391870993;  Refraction Model;0;0;  Blend;0;638580534948123894;Two Sided;0;638580533664166005;Fragment Normal Space,InvertActionOnDeselection;0;0;Forward Only;1;638580530987991846;Transmission;0;638580544073760186;  Transmission Shadow;0.5,False,;0;Translucency;1;638580540187544658;  Translucency Strength;1,False,;0;  Normal Distortion;0.5,False,;0;  Scattering;2,False,;0;  Direct;0.9,False,;0;  Ambient;0.1,False,;0;  Shadow;0.5,False,;0;Cast Shadows;1;638580531007009413;  Use Shadow Threshold;0;638580531055744609;GPU Instancing;1;0;LOD CrossFade;1;0;Built-in Fog;1;638580531112143867;_FinalColorxAlpha;0;638580531427063527;Meta Pass;1;638580531745974011;Override Baked GI;0;638580537468088004;Extra Pre Pass;0;638580531937247262;Tessellation;0;0;  Phong;0;0;  Strength;0.5,False,;0;  Type;0;0;  Tess;16,False,;0;  Min;10,False,;0;  Max;25,False,;0;  Edge Length;16,False,;0;  Max Displacement;25,False,;0;Write Depth;0;0;  Early Z;0;0;Vertex Position,InvertActionOnDeselection;1;0;Debug Display;1;638580588949585275;Clear Coat;0;0;0;10;False;True;True;True;True;True;True;True;True;True;False;LOD0;False;0
+Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;62;0,346;Float;False;True;0;2;UnityEditor.ShaderGraphLitGUI;1;12;TreeItImporter/Leaves_URP;94348b07e5e8bab40bd6c8a1e3df54cd;True;Forward;0;1;Forward;21;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;0;False;;False;False;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;1;False;;True;3;False;;True;True;0;False;;0;False;;True;4;RenderPipeline=UniversalPipeline;RenderType=Opaque=RenderType;Queue=Geometry=Queue=0;UniversalMaterialType=Lit;True;5;True;12;all;0;False;True;1;1;False;;0;False;;1;1;False;;0;False;;False;False;False;False;False;False;False;False;False;False;False;False;False;True;True;True;True;True;True;0;False;;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;1;False;;True;3;False;;True;True;0;False;;0;False;;True;1;LightMode=UniversalForwardOnly;False;False;0;Universal Render Pipeline/Lit;0;0;Standard;42;Lighting Model;0;0;Workflow;1;0;Surface;0;638580533312819900;  Refraction Model;0;0;  Blend;0;0;Two Sided;1;0;Fragment Normal Space,InvertActionOnDeselection;0;0;Forward Only;1;0;Transmission;0;0;  Transmission Shadow;0.5,False,;0;Translucency;0;0;  Translucency Strength;1,False,;0;  Normal Distortion;0.5,False,;0;  Scattering;2,False,;0;  Direct;0.9,False,;0;  Ambient;0.1,False,;0;  Shadow;0.5,False,;0;Cast Shadows;0;638580534107943026;  Use Shadow Threshold;0;0;Receive Shadows;1;0;Receive SSAO;1;0;GPU Instancing;1;0;LOD CrossFade;1;0;Built-in Fog;1;0;_FinalColorxAlpha;0;0;Meta Pass;1;0;Override Baked GI;0;0;Extra Pre Pass;0;0;Tessellation;0;0;  Phong;0;0;  Strength;0.5,False,;0;  Type;0;0;  Tess;16,False,;0;  Min;10,False,;0;  Max;25,False,;0;  Edge Length;16,False,;0;  Max Displacement;25,False,;0;Write Depth;0;0;  Early Z;0;0;Vertex Position,InvertActionOnDeselection;1;0;Debug Display;0;638580589122387870;Clear Coat;0;638580545071233283;0;10;False;True;False;True;True;True;True;True;True;True;False;LOD1;False;0
+Node;AmplifyShaderEditor.TemplateMultiPassMasterNode;1;0,0;Float;False;True;-1;2;UnityEditor.ShaderGraphLitGUI;0;12;TreeItImporter/Leafs_URP;94348b07e5e8bab40bd6c8a1e3df54cd;True;Forward;0;1;Forward;21;False;False;False;False;False;False;False;False;False;False;False;False;True;0;False;;False;True;2;False;;False;False;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;2;False;;True;3;False;;True;True;0;False;;0;False;;True;4;RenderPipeline=UniversalPipeline;RenderType=Transparent=RenderType;Queue=Transparent=Queue=0;UniversalMaterialType=Lit;True;5;True;12;all;0;False;True;1;5;False;;10;False;;1;1;False;;10;False;;False;False;False;False;False;False;False;False;False;False;False;False;False;True;True;True;True;True;True;0;False;;False;False;False;False;False;False;False;True;False;0;False;;255;False;;255;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;0;False;;False;True;1;False;;True;3;False;;True;True;0;False;;0;False;;True;1;LightMode=UniversalForwardOnly;False;False;0;;0;0;Standard;42;Lighting Model;0;0;Workflow;1;0;Surface;1;638580503391870993;  Refraction Model;0;0;  Blend;0;638580534948123894;Two Sided;0;638580533664166005;Fragment Normal Space,InvertActionOnDeselection;0;0;Forward Only;1;638591296224119600;Transmission;0;638580544073760186;  Transmission Shadow;0.5,False,;0;Translucency;1;638580540187544658;  Translucency Strength;1,False,;0;  Normal Distortion;0.5,False,;0;  Scattering;2,False,;0;  Direct;0.9,False,;0;  Ambient;0.1,False,;0;  Shadow;0.5,False,;0;Cast Shadows;1;638580531007009413;  Use Shadow Threshold;0;638580531055744609;Receive Shadows;1;0;Receive SSAO;1;0;GPU Instancing;1;0;LOD CrossFade;1;0;Built-in Fog;1;638591291869747785;_FinalColorxAlpha;0;638591296117020621;Meta Pass;1;638591335915990634;Override Baked GI;0;638580537468088004;Extra Pre Pass;0;638580531937247262;Tessellation;1;638591312706731307;  Phong;0;0;  Strength;0.5,False,;0;  Type;1;638591297755019755;  Tess;16,False,;0;  Min;10,False,;0;  Max;25,False,;0;  Edge Length;16,False,;0;  Max Displacement;25,False,;0;Write Depth;0;0;  Early Z;0;0;Vertex Position,InvertActionOnDeselection;0;638591286891628327;Debug Display;1;638591300404662275;Clear Coat;0;638591291143357798;0;10;False;True;True;True;True;True;True;False;True;True;False;LOD0;False;0
 WireConnection;83;0;82;1
 WireConnection;83;1;82;3
+WireConnection;29;0;22;0
 WireConnection;86;0;83;0
 WireConnection;86;1;84;0
 WireConnection;90;0;89;0
 WireConnection;90;1;88;0
-WireConnection;29;0;22;0
-WireConnection;87;0;86;0
-WireConnection;87;1;90;0
 WireConnection;109;0;103;0
 WireConnection;109;1;29;0
-WireConnection;108;0;104;0
-WireConnection;108;1;29;1
 WireConnection;106;0;105;0
 WireConnection;106;1;29;2
-WireConnection;85;0;87;0
+WireConnection;108;0;104;0
+WireConnection;108;1;29;1
+WireConnection;87;0;86;0
+WireConnection;87;1;90;0
 WireConnection;112;0;109;0
 WireConnection;112;1;108;0
 WireConnection;112;2;106;0
-WireConnection;102;0;85;0
-WireConnection;102;1;112;0
-WireConnection;94;0;93;0
-WireConnection;94;1;102;0
-WireConnection;94;2;124;0
-WireConnection;94;3;129;0
-WireConnection;115;1;117;0
-WireConnection;115;0;94;0
+WireConnection;85;0;87;0
+WireConnection;143;0;124;0
+WireConnection;102;0;112;0
+WireConnection;102;1;85;0
+WireConnection;138;0;143;0
+WireConnection;138;1;102;0
+WireConnection;138;2;129;0
+WireConnection;148;0;146;0
+WireConnection;148;1;138;0
+WireConnection;115;1;146;0
+WireConnection;115;0;148;0
 WireConnection;100;0;115;0
-WireConnection;31;0;15;0
-WireConnection;31;1;10;0
-WireConnection;31;2;20;0
-WireConnection;30;0;23;0
-WireConnection;30;7;23;1
-WireConnection;75;0;73;1
-WireConnection;73;0;74;0
-WireConnection;73;7;74;1
-WireConnection;77;0;76;0
-WireConnection;77;7;76;1
 WireConnection;20;0;21;0
 WireConnection;20;7;21;1
-WireConnection;79;0;31;0
-WireConnection;78;0;31;0
-WireConnection;62;0;20;0
+WireConnection;77;0;76;0
+WireConnection;77;7;76;1
+WireConnection;73;0;74;0
+WireConnection;73;7;74;1
+WireConnection;30;0;23;0
+WireConnection;30;7;23;1
+WireConnection;31;0;10;0
+WireConnection;31;1;20;0
+WireConnection;150;0;77;0
+WireConnection;151;0;20;4
+WireConnection;152;0;31;0
+WireConnection;75;0;73;1
+WireConnection;62;0;152;0
+WireConnection;62;6;151;0
 WireConnection;62;7;34;0
-WireConnection;1;0;31;0
+WireConnection;1;0;152;0
 WireConnection;1;1;30;0
 WireConnection;1;3;71;0
 WireConnection;1;4;75;0
-WireConnection;1;6;20;4
+WireConnection;1;6;151;0
 WireConnection;1;7;34;0
-WireConnection;1;15;77;0
+WireConnection;1;15;150;0
 WireConnection;1;8;101;0
 ASEEND*/
-//CHKSM=CB9C07C1B1220318B86B61E633CA2F0F1B0A67A2
+//CHKSM=79F8889FAB56608E7780521482E88825E733A6E7
