@@ -14,10 +14,6 @@
     "nature",
     "environment"
   ],
-  "repository": {
-    "url": "https://github.com/KoodaaNet/net.koodaa.treeit-importer.git",
-    "type": "git"
-  },
   "author": {
     "name": "Tero Korpela",
     "email": "tero.korpela@gmail.com",
