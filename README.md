@@ -1,7 +1,7 @@
 # Tree It Importer for Unity
 
 [![GitHub latest release](https://img.shields.io/github/v/release/KoodaaNet/net.koodaa.treeit-importer?color=green)](https://github.com/KoodaaNet/net.koodaa.treeit-importer/releases/latest)
-[![GitHub license](https://img.shields.io/github/license/KoodaaNet/net.koodaa.treeit-importer)](https://github.com/KoodaaNet/net.koodaa.treeit-importer/blob/master/LICENSE.txt)
+[![GitHub license](https://img.shields.io/github/license/KoodaaNet/net.koodaa.treeit-importer)](https://github.com/KoodaaNet/net.koodaa.treeit-importer/blob/master/LICENSE.md)
 
 This tool creates Unity tree prefabs from Tree It .tre files easily.
 
