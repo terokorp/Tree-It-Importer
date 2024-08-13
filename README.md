@@ -22,9 +22,14 @@ Install using UPM Package Git URL:
 - Select "Add package from git URL..."
 - Add the following URL: https://github.com/KoodaaNet/net.koodaa.treeit-importer.git#master
 
-### Tree It
+### Get Tree It
 - Free version from the homepage: http://www.evolved-software.com/treeit/treeit
 - Paid version on Steam: https://store.steampowered.com/app/2386460/Tree_It/
+
+### Usage
+- Create tree with Tree it
+- Save .tre and export as .fbx to Unity project folder
+- Now this tool creates tree asset, creates URP Lit materials and setup LODs
 
 # Planned features
 - Windzone is not supported yet.
