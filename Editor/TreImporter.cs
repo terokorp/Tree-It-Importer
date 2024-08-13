@@ -205,7 +205,7 @@ namespace net.koodaa.TreeItImporter.Editor
             // Find tree dimensions
             foreach (var r in model.GetComponentsInChildren<Renderer>())
             {
-                height = Mathf.Max(height, r.bounds.size.y);
+                height = Mathf.Max(height, r.bounds.max.y);
                 width = Mathf.Max(width, r.bounds.size.x);
                 bottom = Mathf.Min(bottom, r.bounds.min.y);
             }
@@ -257,7 +257,7 @@ namespace net.koodaa.TreeItImporter.Editor
         {
             string filename = settings.Filename + "_LOD5";
             GameObject lod5go = LoadLodObject(settings, 5);
-            Texture lod5Texture = lod5go.GetComponents<Renderer>()[0].sharedMaterial.mainTexture;
+
 
             FindDimensions(originalModel, out float height, out float width, out float bottom);
 
