@@ -1,9 +1,9 @@
 # Tree It Importer for Unity
 
-[![GitHub latest release](https://img.shields.io/github/v/release/KoodaaNet/net.koodaa.treeit-importer?color=green)](https://github.com/KoodaaNet/net.koodaa.treeit-importer/releases/latest)
-[![GitHub license](https://img.shields.io/github/license/KoodaaNet/net.koodaa.treeit-importer)](https://github.com/KoodaaNet/net.koodaa.treeit-importer/blob/master/LICENSE.md)
+[![GitHub latest release](https://img.shields.io/github/v/release/terokorp/net.koodaa.treeit-importer?color=green)](https://github.com/terokorp/Tree-It-Importer/releases/latest)
+[![GitHub license](https://img.shields.io/github/license/terokorp/net.koodaa.treeit-importer)](https://github.com/terokorp/Tree-It-Importer/blob/master/LICENSE.md)
 
-[![GitHub package.json version](https://img.shields.io/github/package-json/v/KoodaaNet/net.koodaa.treeit-importer)](https://github.com/KoodaaNet/net.koodaa.treeit-importer/releases)
+[![GitHub package.json version](https://img.shields.io/github/package-json/v/terokorp/Tree-It-Importer)](https://github.com/terokorp/net.koodaa.treeit-importer/releases)
 
 This tool creates Unity tree prefabs from Tree It .tre files easily.
 
@@ -20,7 +20,7 @@ Install using UPM Package Git URL:
 - Go to the Package Manager.
 - Click the plus icon in the top left corner.
 - Select "Add package from git URL..."
-- Add the following URL: https://github.com/KoodaaNet/net.koodaa.treeit-importer.git#master
+- Add the following URL: https://github.com/terokorp/Tree-It-Importer.git#master
 
 ### Get Tree It
 - Free version from the homepage: http://www.evolved-software.com/treeit/treeit
@@ -43,7 +43,7 @@ Install using UPM Package Git URL:
 
 ## Documentation
 
-- https://github.com/KoodaaNet/net.koodaa.treeit-importer/tree/master/Documentation~
+- https://github.com/terokorp/Tree-It-Importer/tree/master/Documentation~
 
 ## License
 
