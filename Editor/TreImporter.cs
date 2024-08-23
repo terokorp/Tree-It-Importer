@@ -13,7 +13,7 @@ namespace net.koodaa.TreeItImporter.Editor
     {
         [SerializeField] internal bool useNormal = true;
         [SerializeField] internal bool useRoughness = true;
-        [SerializeField] internal List<MaterialOverride> materialOverrides;
+        [SerializeField] internal List<MaterialOverride> materialOverrides = new List<MaterialOverride>();
         [SerializeField] internal Shader mainShader;
         [SerializeField] private Color color = Color.white;
 
